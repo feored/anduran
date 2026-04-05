@@ -15,12 +15,52 @@ fn decode_container_rejects_invalid_magic() {
 }
 
 #[test]
+fn decode_container_allows_mismatched_version_string() {
+    let bytes = [
+        0xFF, 0x03, // magic
+        0x00, 0x00, 0x00, 0x04, // version string length
+        b'o', b'o', b'p', b's', // version string
+        0x27, 0x30, // version number 10032
+        0x00, 0x00, // flags
+        0x00, 0x00, 0x00, 0x00, // filename length
+        0x00, 0x00, 0x00, 0x00, // name length
+        0x00, 0x00, 0x00, 0x00, // description length
+    ];
+
+    let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
+
+    assert_eq!(container.save_version, SaveVersion::V10032);
+    assert!(!container.header.requires_pol);
+}
+
+#[test]
+fn decode_container_returns_error_for_truncated_map_filename() {
+    let bytes = [
+        0xFF, 0x03, // magic
+        0x00, 0x00, 0x00, 0x05, // version string length
+        b'1', b'0', b'0', b'3', b'2', // version string
+        0x27, 0x30, // version number 10032
+        0x00, 0x00, // flags
+    ];
+
+    let error = decode_container(ContainerRevision::R10032, &bytes).unwrap_err();
+
+    assert_eq!(error, crate::Error::InvalidContainer("map filename"));
+}
+
+#[test]
 fn decode_container_parses_real_fixture_header() {
     let bytes = fs::read("tests/saves/10032/Guardian_War_0009.sav").unwrap();
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
 
     assert_eq!(container.save_version, SaveVersion::V10032);
-    assert!(!container.payload.is_empty());
-    assert_eq!(&container.payload[..3], &[0x40, 0x00, 0x00]);
+    assert!(container.header.requires_pol);
+    assert_eq!(container.header.map_file_info.filename, "GUARDWAR.MX2");
+    assert!(container.header.map_file_info.name.contains("Guardian"));
+    assert!(container
+        .header
+        .map_file_info
+        .description
+        .starts_with("You and your ally's families"));
 }

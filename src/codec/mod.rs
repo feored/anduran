@@ -1,4 +1,4 @@
-use crate::model::SaveGame;
+use crate::model::{MapInfo, SaveGame, SaveHeader};
 use crate::version::{profile_for, SaveVersion};
 use crate::Error;
 
@@ -32,8 +32,19 @@ impl GameType {
 
 pub fn load(bytes: &[u8]) -> std::result::Result<SaveGame, Error> {
     let profile = profile_for(SaveVersion::V10032);
-    let _container = crate::container::decode_container(profile.container_revision, bytes)?;
-    Err(Error::NotImplemented("save decode"))
+    let container = crate::container::decode_container(profile.container_revision, bytes)?;
+
+    Ok(SaveGame {
+        source_version: container.save_version,
+        header: SaveHeader {
+            requires_pol: container.header.requires_pol,
+        },
+        map_info: MapInfo {
+            filename: container.header.map_file_info.filename,
+            name: container.header.map_file_info.name,
+            description: container.header.map_file_info.description,
+        },
+    })
 }
 
 pub fn save(save_game: &SaveGame) -> std::result::Result<Vec<u8>, Error> {
