@@ -24,6 +24,13 @@ impl<'a> Reader<'a> {
         Ok(bytes[0])
     }
 
+    pub(crate) fn read_byte_as_bool(
+        &mut self,
+        field_name: &'static str,
+    ) -> std::result::Result<bool, Error> {
+        Ok(self.read_u8(field_name)? != 0)
+    }
+
     pub(crate) fn read_u16_be(
         &mut self,
         field_name: &'static str,

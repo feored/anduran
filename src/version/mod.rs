@@ -1,7 +1,17 @@
+use std::fmt::Display;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum SaveVersion {
     #[default]
     V10032,
+}
+
+impl Display for SaveVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SaveVersion::V10032 => f.write_str("10032"),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

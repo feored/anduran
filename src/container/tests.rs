@@ -33,6 +33,14 @@ fn decode_container_allows_mismatched_version_string() {
         0x00, // colors available for humans
         0x00, // colors available for computer
         0x00, // colors of random races
+        0x00, // victory condition type
+        0x00, // computer also wins
+        0x00, // allow normal victory
+        0x00, 0x00, // victory condition param 0
+        0x00, 0x00, // victory condition param 1
+        0x00, // loss condition type
+        0x00, 0x00, // loss condition param 0
+        0x00, 0x00, // loss condition param 1
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
@@ -42,6 +50,14 @@ fn decode_container_allows_mismatched_version_string() {
     assert_eq!(container.header.map_info.width, 0);
     assert_eq!(container.header.map_info.difficulty, crate::model::Difficulty::Easy);
     assert!(container.header.map_info.player_slots.is_empty());
+    assert_eq!(
+        container.header.map_info.victory_condition.kind,
+        crate::model::VictoryConditionKind::DefeatEveryone
+    );
+    assert_eq!(
+        container.header.map_info.loss_condition.kind,
+        crate::model::LossConditionKind::LossEverything
+    );
 }
 
 #[test]
@@ -84,6 +100,14 @@ fn decode_container_allows_non_utf8_string_bytes() {
         0x01, // colors available for humans
         0x10, // colors available for computer
         0x04, // colors of random races
+        0x05, // victory condition type
+        0x01, // computer also wins
+        0x00, // allow normal victory
+        0x00, 0x14, // victory condition param 0
+        0x12, 0x34, // victory condition param 1
+        0x02, // loss condition type
+        0xAB, 0xCD, // loss condition param 0
+        0x00, 0x09, // loss condition param 1
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
@@ -112,6 +136,22 @@ fn decode_container_allows_non_utf8_string_bytes() {
     assert_eq!(
         container.header.map_info.kingdom_colors,
         crate::model::PlayerColorsSet::from_bits(0x11)
+    );
+    assert_eq!(
+        container.header.map_info.victory_condition,
+        crate::model::VictoryConditionData {
+            kind: crate::model::VictoryConditionKind::CollectEnoughGold,
+            comp_also_wins: true,
+            allow_normal_victory: false,
+            params: [0x0014, 0x1234],
+        }
+    );
+    assert_eq!(
+        container.header.map_info.loss_condition,
+        crate::model::LossConditionData {
+            kind: crate::model::LossConditionKind::LossHero,
+            params: [0xABCD, 0x0009],
+        }
     );
 }
 

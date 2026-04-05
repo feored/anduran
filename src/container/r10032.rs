@@ -1,6 +1,9 @@
 use super::{ContainerHeader, DecodedContainer};
 use crate::internal::reader::Reader;
-use crate::model::{Difficulty, MapInfo, PlayerColor, PlayerColorsSet, PlayerSlotInfo, Race};
+use crate::model::{
+    Difficulty, LossConditionData, LossConditionKind, MapInfo, PlayerColor, PlayerColorsSet,
+    PlayerSlotInfo, Race, VictoryConditionData, VictoryConditionKind,
+};
 use crate::version::SaveVersion;
 use crate::{Error, SaveString};
 
@@ -61,6 +64,22 @@ pub(crate) fn decode(bytes: &[u8]) -> std::result::Result<DecodedContainer, Erro
         colors_of_random_races: PlayerColorsSet::from_bits(
             reader.read_u8("colors of random races")?,
         ),
+        victory_condition: VictoryConditionData {
+            kind: VictoryConditionKind::from(reader.read_u8("victory condition type")?),
+            comp_also_wins: reader.read_byte_as_bool("computer also wins")?,
+            allow_normal_victory: reader.read_byte_as_bool("allow normal victory")?,
+            params: [
+                reader.read_u16_be("victory condition param 0")?,
+                reader.read_u16_be("victory condition param 1")?,
+            ],
+        },
+        loss_condition: LossConditionData {
+            kind: LossConditionKind::from(reader.read_u8("loss condition type")?),
+            params: [
+                reader.read_u16_be("loss condition param 0")?,
+                reader.read_u16_be("loss condition param 1")?,
+            ],
+        },
     };
 
     Ok(DecodedContainer {
