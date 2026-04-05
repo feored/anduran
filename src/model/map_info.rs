@@ -1,4 +1,5 @@
-use crate::model::PlayerColorsSet;
+use crate::SaveString;
+use crate::model::{PlayerColorsSet, PlayerSlotInfo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Difficulty {
@@ -26,12 +27,13 @@ impl From<u8> for Difficulty {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct MapInfo {
-    pub filename: String,
-    pub name: String,
-    pub description: String,
+    pub filename: SaveString,
+    pub name: SaveString,
+    pub description: SaveString,
     pub width: u16,
     pub height: u16,
     pub difficulty: Difficulty,
+    pub player_slots: Vec<PlayerSlotInfo>,
     pub kingdom_colors: PlayerColorsSet,
     pub colors_available_for_humans: PlayerColorsSet,
     pub colors_available_for_comp: PlayerColorsSet,

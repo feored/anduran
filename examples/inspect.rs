@@ -18,6 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("  width: {}", save_game.map_info.width);
         println!("  height: {}", save_game.map_info.height);
         println!("  difficulty: {:?}", save_game.map_info.difficulty);
+        for slot in &save_game.map_info.player_slots {
+            println!("  {slot}");
+        }
         println!("  kingdom colors: {}", save_game.map_info.kingdom_colors);
         println!(
             "  colors available for humans: {}",

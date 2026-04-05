@@ -1,7 +1,5 @@
 use std::fmt::Display;
 
-pub const MAX_PLAYERS: usize = 6;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Race {
     #[default]
@@ -34,6 +32,23 @@ impl From<u8> for Race {
     }
 }
 
+impl Display for Race {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Race::None => f.write_str("Neutral"),
+            Race::Knight => f.write_str("Knight"),
+            Race::Barbarian => f.write_str("Barbarian"),
+            Race::Sorceress => f.write_str("Sorceress"),
+            Race::Warlock => f.write_str("Warlock"),
+            Race::Wizard => f.write_str("Wizard"),
+            Race::Necromancer => f.write_str("Necromancer"),
+            Race::Multi => f.write_str("Multi"),
+            Race::Random => f.write_str("Random"),
+            Race::Unknown(value) => write!(f, "Unknown race 0x{value:02X}"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PlayerColor {
     #[default]
@@ -55,6 +70,18 @@ impl From<u8> for PlayerColor {
 }
 
 impl PlayerColor {
+    pub const fn from_index(index: u8) -> Option<Self> {
+        match index {
+            0 => Some(PlayerColor::Blue),
+            1 => Some(PlayerColor::Green),
+            2 => Some(PlayerColor::Red),
+            3 => Some(PlayerColor::Yellow),
+            4 => Some(PlayerColor::Orange),
+            5 => Some(PlayerColor::Purple),
+            _ => None,
+        }
+    }
+
     pub const fn from_bits(value: u8) -> Self {
         match value {
             0x00 => PlayerColor::None,
@@ -80,6 +107,51 @@ impl PlayerColor {
             PlayerColor::Purple => 0x20,
             PlayerColor::Unused => 0x80,
             PlayerColor::Unknown(bits) => bits,
+        }
+    }
+}
+
+impl Display for PlayerColor {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PlayerColor::None => f.write_str("None"),
+            PlayerColor::Blue => f.write_str("Blue"),
+            PlayerColor::Green => f.write_str("Green"),
+            PlayerColor::Red => f.write_str("Red"),
+            PlayerColor::Yellow => f.write_str("Yellow"),
+            PlayerColor::Orange => f.write_str("Orange"),
+            PlayerColor::Purple => f.write_str("Purple"),
+            PlayerColor::Unused => f.write_str("Unused"),
+            PlayerColor::Unknown(bits) => write!(f, "Unknown color 0x{bits:02X}"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PlayerSlotInfo {
+    pub slot_index: u8,
+    pub color: Option<PlayerColor>,
+    pub race: Race,
+    pub allies: PlayerColorsSet,
+}
+
+impl Display for PlayerSlotInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.color {
+            Some(color) => {
+                write!(
+                    f,
+                    "{color} slot {}: {} race, allies {}",
+                    self.slot_index, self.race, self.allies
+                )
+            }
+            None => {
+                write!(
+                    f,
+                    "Slot {}: {} race, allies {}",
+                    self.slot_index, self.race, self.allies
+                )
+            }
         }
     }
 }
@@ -130,7 +202,7 @@ impl Display for PlayerColorsSet {
         .iter()
         {
             if self.contains(color) {
-                colors.push(format!("{:?}", color));
+                colors.push(color.to_string());
             }
         }
         write!(f, "{{{}}}", colors.join(", "))

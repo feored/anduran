@@ -57,13 +57,12 @@ impl<'a> Reader<'a> {
         Ok(bytes)
     }
 
-    pub(crate) fn read_string(
+    pub(crate) fn read_string_bytes(
         &mut self,
         field_name: &'static str,
-    ) -> std::result::Result<String, Error> {
+    ) -> std::result::Result<Vec<u8>, Error> {
         let len = self.read_u32_be(field_name)?;
         let len = usize::try_from(len).map_err(|_| Error::InvalidContainer(field_name))?;
-        let bytes = self.read_bytes(len, field_name)?;
-        String::from_utf8(bytes.to_vec()).map_err(|_| Error::InvalidContainer(field_name))
+        Ok(self.read_bytes(len, field_name)?.to_vec())
     }
 }
