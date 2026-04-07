@@ -1,7 +1,43 @@
 use std::fmt::Display;
 
 use crate::SaveString;
-use crate::model::{PlayerColorsSet, PlayerSlotInfo};
+use crate::model::{PlayerColorsSet, PlayerSlotInfo, SupportedLanguage};
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub enum GameVersion {
+    #[default]
+    SuccessionWars,
+    PriceOfLoyalty,
+    Resurrection,
+}
+
+impl From<u32> for GameVersion {
+    fn from(value: u32) -> Self {
+        match value {
+            0 => GameVersion::SuccessionWars,
+            1 => GameVersion::PriceOfLoyalty,
+            2 => GameVersion::Resurrection,
+            other => panic!("Unknown game version: {other}"),
+        }
+    }
+}
+
+impl From<GameVersion> for u32 {
+    fn from(value: GameVersion) -> Self {
+        match value {
+            GameVersion::SuccessionWars => 0,
+            GameVersion::PriceOfLoyalty => 1,
+            GameVersion::Resurrection => 2,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct WorldDate {
+    pub day: u32,
+    pub week: u32,
+    pub month: u32,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum Difficulty {
@@ -144,6 +180,10 @@ pub struct MapInfo {
     pub victory_condition: VictoryConditionData,
     pub loss_condition: LossConditionData,
     pub timestamp: u32,
+    pub start_with_hero_in_first_castle: bool,
+    pub version: GameVersion,
+    pub world_date: WorldDate,
+    pub main_language: SupportedLanguage,
 }
 
 impl Display for MapInfo {
@@ -173,6 +213,19 @@ impl Display for MapInfo {
         writeln!(f, "colors of random races: {}", self.colors_of_random_races)?;
         writeln!(f, "victory condition: {:?}", self.victory_condition)?;
         writeln!(f, "loss condition: {:?}", self.loss_condition)?;
-        write!(f, "timestamp: {}", self.timestamp)
+        writeln!(f, "timestamp: {}", self.timestamp)?;
+        writeln!(
+            f,
+            "start with hero in first castle: {}",
+            self.start_with_hero_in_first_castle
+        )?;
+        writeln!(f, "version: {:?}", self.version)?;
+        writeln!(
+            f,
+            "world date: month {}, week {}, day {}",
+            self.world_date.month, self.world_date.week, self.world_date.day
+        )?;
+        writeln!(f, "main language: {}", self.main_language)?;
+        Ok(())
     }
 }

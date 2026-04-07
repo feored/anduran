@@ -54,6 +54,12 @@ fn decode_container_allows_mismatched_version_string() {
         0x00, 0x00, // loss condition param 0
         0x00, 0x00, // loss condition param 1
         0x00, 0x00, 0x00, 0x00, // timestamp
+        0x00, // start with hero in first castle
+        0x00, 0x00, 0x00, 0x00, // game version
+        0x00, 0x00, 0x00, 0x00, // world date day
+        0x00, 0x00, 0x00, 0x00, // world date week
+        0x00, 0x00, 0x00, 0x00, // world date month
+        0x00, // main language
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
@@ -75,6 +81,10 @@ fn decode_container_allows_mismatched_version_string() {
         crate::model::LossConditionKind::LossEverything
     );
     assert_eq!(container.header.map_info.timestamp, 0);
+    assert_eq!(
+        container.header.map_info.main_language,
+        crate::model::SupportedLanguage::ENGLISH
+    );
 }
 
 #[test]
@@ -137,6 +147,12 @@ fn decode_container_allows_non_utf8_string_bytes() {
         0xAB, 0xCD, // loss condition param 0
         0x00, 0x09, // loss condition param 1
         0xDE, 0xAD, 0xBE, 0xEF, // timestamp
+        0x01, // start with hero in first castle
+        0x00, 0x00, 0x00, 0x02, // game version
+        0x00, 0x00, 0x00, 0x03, // world date day
+        0x00, 0x00, 0x00, 0x04, // world date week
+        0x00, 0x00, 0x00, 0x05, // world date month
+        0x02, // main language
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
@@ -183,6 +199,10 @@ fn decode_container_allows_non_utf8_string_bytes() {
         }
     );
     assert_eq!(container.header.map_info.timestamp, 0xDEADBEEF);
+    assert_eq!(
+        container.header.map_info.main_language,
+        crate::model::SupportedLanguage::POLISH
+    );
 }
 
 #[test]

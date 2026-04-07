@@ -2,8 +2,9 @@ use super::{ContainerHeader, DecodedContainer};
 use crate::internal::error::ParseSection;
 use crate::internal::reader::Reader;
 use crate::model::{
-    Difficulty, LossConditionData, LossConditionKind, MapInfo, PlayerColor, PlayerColorsSet,
-    PlayerSlotInfo, Race, VictoryConditionData, VictoryConditionKind,
+    Difficulty, GameVersion, LossConditionData, LossConditionKind, MapInfo, PlayerColor,
+    PlayerColorsSet, PlayerSlotInfo, Race, SupportedLanguage, VictoryConditionData,
+    VictoryConditionKind, WorldDate,
 };
 use crate::version::SaveVersion;
 use crate::{Error, SaveString};
@@ -92,6 +93,15 @@ pub(crate) fn decode(bytes: &[u8]) -> std::result::Result<DecodedContainer, Erro
             ],
         },
         timestamp: reader.read_u32_be("timestamp")?,
+        start_with_hero_in_first_castle: reader
+            .read_byte_as_bool("start with hero in first castle")?,
+        version: GameVersion::from(reader.read_u32_be("game version")?),
+        world_date: WorldDate {
+            day: reader.read_u32_be("world date day")?,
+            week: reader.read_u32_be("world date week")?,
+            month: reader.read_u32_be("world date month")?,
+        },
+        main_language: SupportedLanguage::from(reader.read_u8("main language")?),
     };
 
     Ok(DecodedContainer {
