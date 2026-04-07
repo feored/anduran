@@ -29,7 +29,10 @@ fn load_supported_fixtures_decodes_metadata() {
         let bytes = fs::read(fixture).unwrap();
         let save_game = load(&bytes).unwrap();
 
-        assert_eq!(save_game.source_version, SaveVersion::V10032);
+        assert_eq!(
+            save_game.source_version,
+            SaveVersion::FORMAT_VERSION_1111_RELEASE
+        );
         assert_eq!(save_game.header.requires_pol, requires_pol);
         assert_eq!(save_game.map_info.filename, filename);
         assert_eq!(save_game.map_info.name, name);

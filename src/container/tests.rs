@@ -1,5 +1,6 @@
 use std::fs;
 
+use crate::{ParseError, ParseErrorKind, ParseSection};
 use crate::version::ContainerRevision;
 use crate::version::SaveVersion;
 
@@ -11,7 +12,18 @@ fn decode_container_rejects_invalid_magic() {
 
     let error = decode_container(ContainerRevision::R10032, &bytes).unwrap_err();
 
-    assert_eq!(error, crate::Error::InvalidContainer("unexpected magic number"));
+    assert_eq!(
+        error,
+        crate::Error::Parse(ParseError {
+            section: ParseSection::Container,
+            field: "magic number",
+            offset: 0,
+            kind: ParseErrorKind::UnexpectedValue {
+                expected: "0xFF03",
+                actual: "0x0000".to_string(),
+            },
+        })
+    );
 }
 
 #[test]
@@ -41,11 +53,15 @@ fn decode_container_allows_mismatched_version_string() {
         0x00, // loss condition type
         0x00, 0x00, // loss condition param 0
         0x00, 0x00, // loss condition param 1
+        0x00, 0x00, 0x00, 0x00, // timestamp
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
 
-    assert_eq!(container.save_version, SaveVersion::V10032);
+    assert_eq!(
+        container.save_version,
+        SaveVersion::FORMAT_VERSION_1111_RELEASE
+    );
     assert!(!container.header.requires_pol);
     assert_eq!(container.header.map_info.width, 0);
     assert_eq!(container.header.map_info.difficulty, crate::model::Difficulty::Easy);
@@ -58,6 +74,7 @@ fn decode_container_allows_mismatched_version_string() {
         container.header.map_info.loss_condition.kind,
         crate::model::LossConditionKind::LossEverything
     );
+    assert_eq!(container.header.map_info.timestamp, 0);
 }
 
 #[test]
@@ -72,7 +89,18 @@ fn decode_container_returns_error_for_truncated_map_filename() {
 
     let error = decode_container(ContainerRevision::R10032, &bytes).unwrap_err();
 
-    assert_eq!(error, crate::Error::InvalidContainer("map filename"));
+    assert_eq!(
+        error,
+        crate::Error::Parse(ParseError {
+            section: ParseSection::MapInfo,
+            field: "map filename",
+            offset: 15,
+            kind: ParseErrorKind::Truncated {
+                needed: 4,
+                remaining: 0,
+            },
+        })
+    );
 }
 
 #[test]
@@ -108,6 +136,7 @@ fn decode_container_allows_non_utf8_string_bytes() {
         0x02, // loss condition type
         0xAB, 0xCD, // loss condition param 0
         0x00, 0x09, // loss condition param 1
+        0xDE, 0xAD, 0xBE, 0xEF, // timestamp
     ];
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
@@ -153,6 +182,7 @@ fn decode_container_allows_non_utf8_string_bytes() {
             params: [0xABCD, 0x0009],
         }
     );
+    assert_eq!(container.header.map_info.timestamp, 0xDEADBEEF);
 }
 
 #[test]
@@ -161,7 +191,10 @@ fn decode_container_parses_real_fixture_header() {
 
     let container = decode_container(ContainerRevision::R10032, &bytes).unwrap();
 
-    assert_eq!(container.save_version, SaveVersion::V10032);
+    assert_eq!(
+        container.save_version,
+        SaveVersion::FORMAT_VERSION_1111_RELEASE
+    );
     assert!(container.header.requires_pol);
     assert_eq!(container.header.map_info.filename, "GUARDWAR.MX2");
     assert!(container.header.map_info.name.contains("Guardian"));

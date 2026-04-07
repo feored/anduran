@@ -1,4 +1,5 @@
 use super::{ContainerHeader, DecodedContainer};
+use crate::internal::error::ParseSection;
 use crate::internal::reader::Reader;
 use crate::model::{
     Difficulty, LossConditionData, LossConditionKind, MapInfo, PlayerColor, PlayerColorsSet,
@@ -11,23 +12,33 @@ pub(crate) const MAGIC_NUMBER: u16 = 0xFF03;
 pub(crate) const REQUIRES_POL: u16 = 0x4000;
 
 pub(crate) fn decode(bytes: &[u8]) -> std::result::Result<DecodedContainer, Error> {
-    let mut reader = Reader::new(bytes);
+    let mut reader = Reader::with_context(bytes, ParseSection::Container);
+    let magic_offset = reader.position();
     let magic_number = reader.read_u16_be("magic number")?;
 
     if magic_number != MAGIC_NUMBER {
-        return Err(Error::InvalidContainer("unexpected magic number"));
+        return Err(reader.unexpected_value(
+            "magic number",
+            magic_offset,
+            "0xFF03",
+            format!("0x{magic_number:04X}"),
+        ));
     }
 
     let _save_version_string = reader.read_string_bytes("save version string")?;
     let save_version_number = reader.read_u16_be("save version")?;
+    let save_version = SaveVersion::from_u16(save_version_number);
 
-    let save_version = match save_version_number {
-        10032 => SaveVersion::V10032,
-        _ => return Err(Error::UnsupportedSaveVersion),
-    };
+    if save_version != SaveVersion::FORMAT_VERSION_1111_RELEASE {
+        return Err(Error::UnsupportedSaveVersion {
+            version: save_version_number,
+        });
+    }
 
+    reader.set_section(ParseSection::Header);
     let requires_pol = (reader.read_u16_be("flags")? & REQUIRES_POL) != 0;
 
+    reader.set_section(ParseSection::MapInfo);
     let filename = SaveString::from_bytes(reader.read_string_bytes("map filename")?);
     let name = SaveString::from_bytes(reader.read_string_bytes("map name")?);
     let description = SaveString::from_bytes(reader.read_string_bytes("map description")?);
@@ -80,6 +91,7 @@ pub(crate) fn decode(bytes: &[u8]) -> std::result::Result<DecodedContainer, Erro
                 reader.read_u16_be("loss condition param 1")?,
             ],
         },
+        timestamp: reader.read_u32_be("timestamp")?,
     };
 
     Ok(DecodedContainer {

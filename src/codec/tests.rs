@@ -12,17 +12,11 @@ fn game_type_extension_mapping_round_trips() {
     assert_eq!(game_type.extension(), "savh");
 
     let extension = "sav";
-    assert_eq!(
-        GameType::from_extension(extension),
-        Some(GameType::Standard)
-    );
+    assert_eq!(GameType::from_extension(extension), GameType::Standard);
 
     let extension = "savc";
-    assert_eq!(
-        GameType::from_extension(extension),
-        Some(GameType::Campaign)
-    );
+    assert_eq!(GameType::from_extension(extension), GameType::Campaign);
 
     let extension = "savh";
-    assert_eq!(GameType::from_extension(extension), Some(GameType::Hotseat));
+    assert_eq!(GameType::from_extension(extension), GameType::Hotseat);
 }

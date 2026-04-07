@@ -1,37 +1,37 @@
-use crate::model::{SaveGame, SaveHeader};
-use crate::version::{profile_for, SaveVersion};
 use crate::Error;
+use crate::model::{SaveGame, SaveHeader};
+use crate::version::{SaveVersion, profile_for};
 
-#[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum GameType {
     Standard,
     Campaign,
     Hotseat,
+    Unknown(String),
 }
 
-#[allow(dead_code)]
 impl GameType {
     fn extension(&self) -> &str {
         match self {
             GameType::Standard => "sav",
             GameType::Campaign => "savc",
             GameType::Hotseat => "savh",
+            GameType::Unknown(_) => "savm",
         }
     }
 
-    fn from_extension(extension: &str) -> Option<GameType> {
+    fn from_extension(extension: &str) -> GameType {
         match extension {
-            "sav" => Some(GameType::Standard),
-            "savc" => Some(GameType::Campaign),
-            "savh" => Some(GameType::Hotseat),
-            _ => None,
+            "sav" => GameType::Standard,
+            "savc" => GameType::Campaign,
+            "savh" => GameType::Hotseat,
+            _ => GameType::Unknown(extension.to_string()),
         }
     }
 }
 
 pub fn load(bytes: &[u8]) -> std::result::Result<SaveGame, Error> {
-    let profile = profile_for(SaveVersion::V10032);
+    let profile = crate::version::LATEST_PROFILE;
     let container = crate::container::decode_container(profile.container_revision, bytes)?;
 
     Ok(SaveGame {
@@ -44,12 +44,19 @@ pub fn load(bytes: &[u8]) -> std::result::Result<SaveGame, Error> {
 }
 
 pub fn save(save_game: &SaveGame) -> std::result::Result<Vec<u8>, Error> {
-    save_as(save_game, SaveVersion::V10032)
+    save_as(save_game, SaveVersion::FORMAT_VERSION_1111_RELEASE)
 }
 
 pub fn save_as(save_game: &SaveGame, target: SaveVersion) -> std::result::Result<Vec<u8>, Error> {
-    let _ = (save_game, profile_for(target));
-    Err(Error::NotImplemented("save encode"))
+    let Some(profile) = profile_for(target) else {
+        return Err(Error::UnsupportedSaveVersion {
+            version: target.as_u16(),
+        });
+    };
+    let _ = (save_game, profile);
+    Err(Error::NotImplemented {
+        feature: "save encode",
+    })
 }
 
 #[cfg(test)]

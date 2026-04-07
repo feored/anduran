@@ -128,6 +128,24 @@ pub struct LossConditionData {
     pub params: [u16; 2],
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct MapInfo {
+    pub filename: SaveString,
+    pub name: SaveString,
+    pub description: SaveString,
+    pub width: u16,
+    pub height: u16,
+    pub difficulty: Difficulty,
+    pub player_slots: Vec<PlayerSlotInfo>,
+    pub kingdom_colors: PlayerColorsSet,
+    pub colors_available_for_humans: PlayerColorsSet,
+    pub colors_available_for_comp: PlayerColorsSet,
+    pub colors_of_random_races: PlayerColorsSet,
+    pub victory_condition: VictoryConditionData,
+    pub loss_condition: LossConditionData,
+    pub timestamp: u32,
+}
+
 impl Display for MapInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "map filename: {}", self.filename)?;
@@ -154,23 +172,7 @@ impl Display for MapInfo {
         )?;
         writeln!(f, "colors of random races: {}", self.colors_of_random_races)?;
         writeln!(f, "victory condition: {:?}", self.victory_condition)?;
-        write!(f, "loss condition: {:?}", self.loss_condition)
+        writeln!(f, "loss condition: {:?}", self.loss_condition)?;
+        write!(f, "timestamp: {}", self.timestamp)
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub struct MapInfo {
-    pub filename: SaveString,
-    pub name: SaveString,
-    pub description: SaveString,
-    pub width: u16,
-    pub height: u16,
-    pub difficulty: Difficulty,
-    pub player_slots: Vec<PlayerSlotInfo>,
-    pub kingdom_colors: PlayerColorsSet,
-    pub colors_available_for_humans: PlayerColorsSet,
-    pub colors_available_for_comp: PlayerColorsSet,
-    pub colors_of_random_races: PlayerColorsSet,
-    pub victory_condition: VictoryConditionData,
-    pub loss_condition: LossConditionData,
 }
