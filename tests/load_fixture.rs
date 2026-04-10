@@ -37,5 +37,19 @@ fn load_supported_fixtures_decodes_metadata() {
         assert_eq!(save_game.header.file_info.filename, filename);
         assert_eq!(save_game.header.file_info.name, name);
         assert!(!save_game.header.file_info.description.is_empty());
+        assert_eq!(
+            save_game.world.width,
+            i32::from(save_game.header.file_info.width)
+        );
+        assert_eq!(
+            save_game.world.height,
+            i32::from(save_game.header.file_info.height)
+        );
+        assert!(save_game.to_string().contains(&format!(
+            "world: {}x{}, {} tiles",
+            save_game.world.width,
+            save_game.world.height,
+            save_game.world.tiles.len()
+        )));
     }
 }
