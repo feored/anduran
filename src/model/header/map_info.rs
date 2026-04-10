@@ -11,6 +11,7 @@ pub enum GameVersion {
     SuccessionWars,
     PriceOfLoyalty,
     Resurrection,
+    /// Preserved raw value not known by this crate.
     Unknown(u32),
 }
 
@@ -56,6 +57,7 @@ pub enum Difficulty {
     Hard,
     Expert,
     Impossible,
+    /// Preserved raw value not known by this crate.
     Unknown(u8),
 }
 
@@ -95,6 +97,7 @@ pub enum VictoryConditionKind {
     ObtainArtifact,
     DefeatOtherSide,
     CollectEnoughGold,
+    /// Preserved raw value not known by this crate.
     Unknown(u8),
 }
 
@@ -147,6 +150,7 @@ pub enum LossConditionKind {
     LossTown,
     LossHero,
     LossOutOfTime,
+    /// Preserved raw value not known by this crate.
     Unknown(u8),
 }
 

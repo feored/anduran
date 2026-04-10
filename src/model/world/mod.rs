@@ -36,7 +36,7 @@ pub struct Tile {
     pub fog_colors: PlayerColorsSet,
     /// Counted metadata values. Meaning depends on the object type.
     pub metadata: Vec<u32>,
-    /// Raw cached occupant hero id
+    /// Raw cached occupant hero id (`uint8_t` in fheroes2).
     pub occupant_hero_id: u8,
     /// Whether this tile is marked as road.
     pub is_tile_marked_as_road: bool,
@@ -68,6 +68,7 @@ pub enum LayerType {
     BackgroundLayer,
     ShadowLayer,
     TerrainLayer,
+    /// Preserved raw value not known by this crate.
     UnknownLayer(u8),
 }
 

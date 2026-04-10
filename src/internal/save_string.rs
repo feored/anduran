@@ -37,6 +37,11 @@ impl SaveString {
     pub fn to_string_lossy(&self) -> String {
         String::from_utf8_lossy(&self.0).into_owned()
     }
+
+    /// Return whether there are no bytes.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl Display for SaveString {

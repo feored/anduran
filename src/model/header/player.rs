@@ -13,6 +13,7 @@ pub enum Race {
     Necromancer,
     Multi,
     Random,
+    /// Preserved raw value not known by this crate.
     Unknown(u8),
 }
 
@@ -79,6 +80,7 @@ pub enum PlayerColor {
     Orange,
     Purple,
     Unused,
+    /// Preserved raw value not known by this crate.
     Unknown(u8),
 }
 

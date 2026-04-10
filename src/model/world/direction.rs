@@ -7,7 +7,8 @@ use std::fmt::Display;
 pub struct DirectionSet(u16);
 
 impl DirectionSet {
-    pub const UNKNOWN: Self = Self(0x0000);
+    /// No direction bits set.
+    pub const EMPTY: Self = Self(0x0000);
     pub const TOP_LEFT: Self = Self(0x0001);
     pub const TOP: Self = Self(0x0002);
     pub const TOP_RIGHT: Self = Self(0x0004);
@@ -46,7 +47,7 @@ impl DirectionSet {
 
 impl Display for DirectionSet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.0 == Self::UNKNOWN.0 {
+        if self.0 == Self::EMPTY.0 {
             return f.write_str("Blocked (0x0000)");
         }
 
