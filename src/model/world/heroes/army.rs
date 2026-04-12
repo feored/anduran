@@ -280,15 +280,13 @@ impl Display for Army {
 
         let formation = if self.spread_combat_formation {
             "spread"
-        }
-        else {
+        } else {
             "grouped"
         };
 
         if troops.is_empty() {
             write!(f, "{} formation, empty", formation)
-        }
-        else {
+        } else {
             write!(f, "{} formation, {}", formation, troops.join(", "))
         }
     }

@@ -6,7 +6,6 @@ use flate2::read::ZlibDecoder;
 use flate2::write::ZlibEncoder;
 
 use crate::Error;
-use crate::SaveString;
 use crate::SaveVersion;
 use crate::internal::error::ParseSection;
 use crate::internal::reader::Reader;
@@ -61,7 +60,7 @@ fn encode_save_file_magic(writer: &mut Writer) {
 }
 
 fn decode_version(reader: &mut Reader<'_>) -> std::result::Result<FileVersion, Error> {
-    let _save_version_string = reader.read_string_bytes("save version string")?;
+    let _save_version_string = reader.read_save_string("save version string")?;
     let save_version_offset = reader.position();
     let save_version = SaveVersion::from_u16(reader.read_u16_be("save version")?);
 
@@ -135,9 +134,9 @@ fn decode_map_info(
 ) -> std::result::Result<MapInfo, Error> {
     reader.set_section(ParseSection::MapInfo);
 
-    let filename = SaveString::from_bytes(reader.read_string_bytes("map filename")?);
-    let name = SaveString::from_bytes(reader.read_string_bytes("map name")?);
-    let description = SaveString::from_bytes(reader.read_string_bytes("map description")?);
+    let filename = reader.read_save_string("map filename")?;
+    let name = reader.read_save_string("map name")?;
+    let description = reader.read_save_string("map description")?;
     let width = reader.read_u16_be("map width")?;
     let height = reader.read_u16_be("map height")?;
     let difficulty = Difficulty::from_byte(reader.read_u8("map difficulty")?);
@@ -186,9 +185,7 @@ fn decode_map_info(
     let main_language = SupportedLanguage::from(reader.read_u8("main language")?);
     let creator_notes = match revision {
         MapInfoRevision::V10024 => None,
-        MapInfoRevision::V10033 => Some(SaveString::from_bytes(
-            reader.read_string_bytes("creator notes")?,
-        )),
+        MapInfoRevision::V10033 => Some(reader.read_save_string("creator notes")?),
     };
 
     Ok(MapInfo {

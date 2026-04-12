@@ -11,7 +11,8 @@ pub use header::{
 };
 pub use save_game::{BodyCompressionHeader, SaveGame};
 pub use world::{
-    Army, Artifact, ArtifactID, Direction, DirectionSet, Hero, HeroBase, HeroID, HeroModeSet,
-    IndexObject, LayerType, MapPosition, MonsterType, ObjectPart, Path, Point, PrimarySkills,
-    RouteStep, SecondarySkill, Skill, SkillLevel, Spell, Tile, Troop, World,
+    Army, Artifact, ArtifactID, Castle, CastleBuilding, CastleBuildingSet, CastleDwellingTier,
+    CastleDwellings, CastleModeSet, Direction, DirectionSet, Hero, HeroBase, HeroID, HeroModeSet,
+    IndexObject, LayerType, MageGuild, MapPosition, MonsterType, ObjectPart, Path, Point,
+    PrimarySkills, RouteStep, SecondarySkill, Skill, SkillLevel, Spell, Tile, Troop, World,
 };

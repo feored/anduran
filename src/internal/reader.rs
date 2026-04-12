@@ -1,5 +1,5 @@
+use crate::SaveString;
 use crate::internal::error::{Error, ParseError, ParseErrorKind, ParseSection};
-
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Reader<'a> {
     bytes: &'a [u8],
@@ -87,10 +87,10 @@ impl<'a> Reader<'a> {
         Ok(bytes)
     }
 
-    pub(crate) fn read_string_bytes(
+    pub(crate) fn read_save_string(
         &mut self,
         field_name: &'static str,
-    ) -> std::result::Result<Vec<u8>, Error> {
+    ) -> std::result::Result<SaveString, Error> {
         let length_offset = self.offset;
         let len = self.read_u32_be(field_name)?;
         let len = usize::try_from(len).map_err(|_| {
@@ -100,7 +100,7 @@ impl<'a> Reader<'a> {
                 "string length does not fit in usize",
             )
         })?;
-        Ok(self.read_bytes(len, field_name)?.to_vec())
+        Ok(SaveString::from(self.read_bytes(len, field_name)?.to_vec()))
     }
 
     pub(crate) fn unexpected_value(

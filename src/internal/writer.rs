@@ -28,6 +28,11 @@ impl Writer {
         self.offset += 2;
     }
 
+    pub(crate) fn write_i16_be(&mut self, value: i16) {
+        self.bytes.extend_from_slice(&value.to_be_bytes());
+        self.offset += 2;
+    }
+
     pub(crate) fn write_u32_be(&mut self, value: u32) {
         self.bytes.extend_from_slice(&value.to_be_bytes());
         self.offset += 4;

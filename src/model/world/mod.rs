@@ -1,9 +1,14 @@
+mod castles;
 mod heroes;
 mod index_object;
 mod tile;
 
 use std::fmt::Display;
 
+pub use castles::{
+    Castle, CastleBuilding, CastleBuildingSet, CastleDwellingTier, CastleDwellings, CastleModeSet,
+    MageGuild,
+};
 pub use heroes::{
     Army, Artifact, ArtifactID, Direction, Hero, HeroBase, HeroID, HeroModeSet, MonsterType, Path,
     PrimarySkills, RouteStep, SecondarySkill, Skill, SkillLevel, Spell, Troop,
@@ -22,12 +27,18 @@ pub struct World {
     pub tiles: Vec<Tile>,
     /// Decoded non-placeholder hero roster.
     pub heroes: Vec<Hero>,
+    /// Decoded castle table.
+    pub castles: Vec<Castle>,
 }
 
 impl Display for World {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let active_heroes = self.heroes.iter().filter(|hero| hero.is_active()).count();
-        let in_play_heroes: Vec<&Hero> = self.heroes.iter().filter(|hero| hero.is_in_play()).collect();
+        let in_play_heroes: Vec<&Hero> = self
+            .heroes
+            .iter()
+            .filter(|hero| hero.is_in_play())
+            .collect();
         let hireable_heroes = self
             .heroes
             .iter()
@@ -37,10 +48,11 @@ impl Display for World {
 
         writeln!(
             f,
-            "world: {}x{}, {} tiles, {} heroes ({} active, {} in play, {} for hire, {} jailed)",
+            "world: {}x{}, {} tiles, {} castles, {} heroes ({} active, {} in play, {} for hire, {} jailed)",
             self.width,
             self.height,
             self.tiles.len(),
+            self.castles.len(),
             self.heroes.len(),
             active_heroes,
             in_play_heroes.len(),
@@ -48,13 +60,18 @@ impl Display for World {
             jailed_heroes
         )?;
 
-        if in_play_heroes.is_empty() {
-            return Ok(());
+        if !self.castles.is_empty() {
+            writeln!(f, "castles:")?;
+            for castle in &self.castles {
+                writeln!(f, "  - {castle}")?;
+            }
         }
 
-        writeln!(f, "heroes:")?;
-        for hero in in_play_heroes {
-            writeln!(f, "  - {hero}")?;
+        if !in_play_heroes.is_empty() {
+            writeln!(f, "heroes:")?;
+            for hero in in_play_heroes {
+                writeln!(f, "  - {hero}")?;
+            }
         }
 
         Ok(())

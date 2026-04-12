@@ -52,8 +52,7 @@ impl Race {
             other => {
                 if other >= 0 && other <= u8::MAX as i32 {
                     Race::Unknown(other as u8)
-                }
-                else {
+                } else {
                     Race::Unknown(0)
                 }
             }

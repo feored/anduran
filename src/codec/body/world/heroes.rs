@@ -1,6 +1,7 @@
 use crate::Error;
 use crate::SaveString;
 use crate::internal::reader::Reader;
+use crate::internal::writer::Writer;
 use crate::model::{
     Army, Artifact, ArtifactID, Direction, Hero, HeroBase, HeroID, HeroModeSet, IndexObject,
     MapPosition, MonsterType, Path, PlayerColor, Point, PrimarySkills, Race, RouteStep,
@@ -29,9 +30,23 @@ pub(super) fn decode(reader: &mut Reader<'_>) -> std::result::Result<Vec<Hero>, 
     Ok(heroes)
 }
 
+pub(super) fn encode(writer: &mut Writer, heroes: &[Hero]) -> std::result::Result<(), Error> {
+    let slots = hero_slots(heroes)?;
+
+    writer.write_u32_be(EXPECTED_HEROES_COUNT);
+    for slot in slots {
+        match slot {
+            Some(hero) => encode_hero(writer, hero)?,
+            None => encode_placeholder_hero(writer)?,
+        }
+    }
+
+    Ok(())
+}
+
 fn decode_hero(reader: &mut Reader<'_>) -> std::result::Result<Hero, Error> {
     let base = decode_hero_base(reader)?;
-    let name = reader.read_string_bytes("hero name")?;
+    let name = reader.read_save_string("hero name")?;
     let color_base = PlayerColor::from_bits(reader.read_u8("hero color base")?);
     let experience = reader.read_u32_be("hero experience")?;
     let secondary_skills = decode_secondary_skills(reader)?;
@@ -53,7 +68,7 @@ fn decode_hero(reader: &mut Reader<'_>) -> std::result::Result<Hero, Error> {
 
     Ok(Hero {
         base,
-        name: SaveString::from(name),
+        name: name,
         color_base,
         experience,
         secondary_skills,
@@ -72,7 +87,30 @@ fn decode_hero(reader: &mut Reader<'_>) -> std::result::Result<Hero, Error> {
     })
 }
 
-fn decode_hero_base(reader: &mut Reader<'_>) -> std::result::Result<HeroBase, Error> {
+fn encode_hero(writer: &mut Writer, hero: &Hero) -> std::result::Result<(), Error> {
+    encode_hero_base(writer, &hero.base)?;
+    writer.write_save_string(&hero.name);
+    writer.write_u8(hero.color_base.bits());
+    writer.write_u32_be(hero.experience);
+    encode_secondary_skills(writer, &hero.secondary_skills)?;
+    encode_army(writer, &hero.army)?;
+    writer.write_i32_be(hero.id.to_i32());
+    writer.write_i32_be(hero.portrait);
+    writer.write_i32_be(hero.race.to_i32());
+    writer.write_u16_be(hero.object_type_under_hero);
+    encode_path(writer, &hero.path)?;
+    writer.write_i32_be(hero.direction.to_i32());
+    writer.write_i32_be(hero.sprite_index);
+    writer.write_i32_be(hero.patrol_center.x);
+    writer.write_i32_be(hero.patrol_center.y);
+    writer.write_u32_be(hero.patrol_distance);
+    encode_visited_objects(writer, &hero.visited_objects)?;
+    writer.write_u32_be(hero.last_ground_region);
+
+    Ok(())
+}
+
+pub(crate) fn decode_hero_base(reader: &mut Reader<'_>) -> std::result::Result<HeroBase, Error> {
     let primary_skills = PrimarySkills {
         attack: reader.read_i32_be("hero primary skill attack")?,
         defense: reader.read_i32_be("hero primary skill defense")?,
@@ -113,6 +151,40 @@ fn decode_hero_base(reader: &mut Reader<'_>) -> std::result::Result<HeroBase, Er
     })
 }
 
+pub(crate) fn encode_hero_base(
+    writer: &mut Writer,
+    base: &HeroBase,
+) -> std::result::Result<(), Error> {
+    writer.write_i32_be(base.primary_skills.attack);
+    writer.write_i32_be(base.primary_skills.defense);
+    writer.write_i32_be(base.primary_skills.knowledge);
+    writer.write_i32_be(base.primary_skills.power);
+    writer.write_i16_be(base.map_position.x);
+    writer.write_i16_be(base.map_position.y);
+    writer.write_u32_be(base.modes.bits());
+    writer.write_u32_be(base.spell_points);
+    writer.write_u32_be(base.move_points);
+    writer.write_u32_be(len_to_u32(
+        base.spell_book.len(),
+        "hero spell book",
+        "spell count must fit in u32",
+    )?);
+    for spell in &base.spell_book {
+        writer.write_i32_be(spell.to_i32());
+    }
+    writer.write_u32_be(len_to_u32(
+        base.bag_artifacts.len(),
+        "hero bag artifacts",
+        "artifact count must fit in u32",
+    )?);
+    for artifact in &base.bag_artifacts {
+        writer.write_i32_be(artifact.id.to_i32());
+        writer.write_i32_be(artifact.ext);
+    }
+
+    Ok(())
+}
+
 fn decode_secondary_skills(
     reader: &mut Reader<'_>,
 ) -> std::result::Result<Vec<SecondarySkill>, Error> {
@@ -136,7 +208,31 @@ fn decode_secondary_skills(
     Ok(secondary_skills)
 }
 
-fn decode_army(reader: &mut Reader<'_>) -> std::result::Result<Army, Error> {
+fn encode_secondary_skills(
+    writer: &mut Writer,
+    secondary_skills: &[SecondarySkill],
+) -> std::result::Result<(), Error> {
+    if secondary_skills.len() > 8 {
+        return Err(Error::InvalidModel {
+            field: "hero secondary skills",
+            message: "secondary skill count must be at most 8",
+        });
+    }
+
+    writer.write_u32_be(len_to_u32(
+        secondary_skills.len(),
+        "hero secondary skills",
+        "secondary skill count must fit in u32",
+    )?);
+    for skill in secondary_skills {
+        writer.write_i32_be(skill.id.to_i32());
+        writer.write_i32_be(skill.level.to_i32());
+    }
+
+    Ok(())
+}
+
+pub(crate) fn decode_army(reader: &mut Reader<'_>) -> std::result::Result<Army, Error> {
     let troops_count_offset = reader.position();
     let troops_count = reader.read_u32_be("hero army troops count")?;
     if troops_count != 5 {
@@ -161,6 +257,25 @@ fn decode_army(reader: &mut Reader<'_>) -> std::result::Result<Army, Error> {
     Ok(army)
 }
 
+pub(crate) fn encode_army(writer: &mut Writer, army: &Army) -> std::result::Result<(), Error> {
+    if army.troops.len() != 5 {
+        return Err(Error::InvalidModel {
+            field: "hero army troops",
+            message: "hero army must contain exactly 5 troop slots",
+        });
+    }
+
+    writer.write_u32_be(5);
+    for troop in &army.troops {
+        writer.write_i32_be(troop.monster.to_i32());
+        writer.write_u32_be(troop.count);
+    }
+    writer.write_byte_from_bool(army.spread_combat_formation);
+    writer.write_u8(army.player_color.bits());
+
+    Ok(())
+}
+
 fn decode_path(reader: &mut Reader<'_>) -> std::result::Result<Path, Error> {
     let hidden = reader.read_byte_as_bool("hero path hidden")?;
     let steps_count = reader.read_u32_be("hero path steps count")?;
@@ -175,6 +290,22 @@ fn decode_path(reader: &mut Reader<'_>) -> std::result::Result<Path, Error> {
     Ok(Path { hidden, steps })
 }
 
+fn encode_path(writer: &mut Writer, path: &Path) -> std::result::Result<(), Error> {
+    writer.write_byte_from_bool(path.hidden);
+    writer.write_u32_be(len_to_u32(
+        path.steps.len(),
+        "hero path steps",
+        "path step count must fit in u32",
+    )?);
+    for step in &path.steps {
+        writer.write_i32_be(step.from_index);
+        writer.write_i32_be(step.direction.to_i32());
+        writer.write_u32_be(step.movement_cost);
+    }
+
+    Ok(())
+}
+
 fn decode_visited_objects(reader: &mut Reader<'_>) -> std::result::Result<Vec<IndexObject>, Error> {
     let visited_count = reader.read_u32_be("hero visited objects count")?;
     let mut visited_objects = Vec::with_capacity(usize::try_from(visited_count).unwrap_or(0));
@@ -185,4 +316,106 @@ fn decode_visited_objects(reader: &mut Reader<'_>) -> std::result::Result<Vec<In
         });
     }
     Ok(visited_objects)
+}
+
+fn encode_visited_objects(
+    writer: &mut Writer,
+    visited_objects: &[IndexObject],
+) -> std::result::Result<(), Error> {
+    writer.write_u32_be(len_to_u32(
+        visited_objects.len(),
+        "hero visited objects",
+        "visited object count must fit in u32",
+    )?);
+    for object in visited_objects {
+        writer.write_i32_be(object.tile_index);
+        writer.write_u16_be(object.object_type);
+    }
+
+    Ok(())
+}
+
+fn encode_placeholder_hero(writer: &mut Writer) -> std::result::Result<(), Error> {
+    let placeholder = Hero {
+        base: HeroBase {
+            primary_skills: PrimarySkills::default(),
+            map_position: MapPosition::default(),
+            modes: HeroModeSet::EMPTY,
+            spell_points: 0,
+            move_points: 0,
+            spell_book: Vec::new(),
+            bag_artifacts: Vec::new(),
+        },
+        name: SaveString::default(),
+        color_base: PlayerColor::None,
+        experience: 0,
+        secondary_skills: Vec::new(),
+        army: Army {
+            troops: vec![Troop::default(); 5],
+            spread_combat_formation: false,
+            player_color: PlayerColor::None,
+        },
+        id: HeroID::Unknown(0),
+        portrait: 0,
+        race: Race::None,
+        object_type_under_hero: 0,
+        path: Path::default(),
+        direction: Direction::Unknown,
+        sprite_index: 0,
+        patrol_center: Point::default(),
+        patrol_distance: 0,
+        visited_objects: Vec::new(),
+        last_ground_region: 0,
+    };
+
+    encode_hero(writer, &placeholder)
+}
+
+fn hero_slots<'a>(heroes: &'a [Hero]) -> std::result::Result<Vec<Option<&'a Hero>>, Error> {
+    let mut slots = vec![None; usize::try_from(EXPECTED_HEROES_COUNT).unwrap()];
+
+    for hero in heroes {
+        let slot_index = semantic_slot_index(hero)?;
+        if slots[slot_index].is_some() {
+            return Err(Error::InvalidModel {
+                field: "world heroes",
+                message: "hero ids must be unique",
+            });
+        }
+        slots[slot_index] = Some(hero);
+    }
+
+    Ok(slots)
+}
+
+fn semantic_slot_index(hero: &Hero) -> std::result::Result<usize, Error> {
+    if !hero.is_meaningful() {
+        return Err(Error::InvalidModel {
+            field: "world heroes",
+            message: "hero list must not contain placeholder or debug heroes",
+        });
+    }
+
+    let raw_id = hero.id.to_i32();
+    let slot_index = usize::try_from(raw_id).map_err(|_| Error::InvalidModel {
+        field: "world heroes",
+        message: "hero id must fit in serialized hero table",
+    })?;
+
+    if slot_index >= usize::try_from(EXPECTED_HEROES_COUNT).unwrap() {
+        return Err(Error::InvalidModel {
+            field: "world heroes",
+            message: "hero id must fit in serialized hero table",
+        });
+    }
+
+    Ok(slot_index)
+}
+
+fn len_to_u32(
+    len: usize,
+    field: &'static str,
+    message: &'static str,
+) -> std::result::Result<u32, Error> {
+    u32::try_from(len).map_err(|_| Error::InvalidModel { field, message })
 }

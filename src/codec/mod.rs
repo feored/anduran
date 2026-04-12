@@ -52,6 +52,7 @@ pub fn save_as(save_game: &SaveGame, target: SaveVersion) -> std::result::Result
             feature: "save version conversion",
         });
     }
+    let body = encode_body(save_game)?;
 
     file::encode_file(
         &file::FileParts {
@@ -59,10 +60,32 @@ pub fn save_as(save_game: &SaveGame, target: SaveVersion) -> std::result::Result
             file_info: save_game.header.file_info.clone(),
             game_type: save_game.header.game_type,
             body_compression_header: save_game.compression_header,
-            body: save_game.body.clone(),
+            body,
         },
         profile,
     )
+}
+
+fn encode_body(save_game: &SaveGame) -> std::result::Result<Vec<u8>, Error> {
+    if save_game.body.is_empty() {
+        return body::world::encode(&save_game.world);
+    }
+
+    let (_, original_world_prefix_len) =
+        body::world::decode_with_remaining_offset(&save_game.body)?;
+    let encoded_world = body::world::encode(&save_game.world)?;
+    let suffix = save_game
+        .body
+        .get(original_world_prefix_len..)
+        .ok_or_else(|| Error::InvalidModel {
+            field: "body",
+            message: "world prefix length exceeds original body length",
+        })?;
+
+    let mut body = Vec::with_capacity(encoded_world.len() + suffix.len());
+    body.extend_from_slice(&encoded_world);
+    body.extend_from_slice(suffix);
+    Ok(body)
 }
 
 #[cfg(test)]
