@@ -1,12 +1,18 @@
+pub mod captured_objects;
 pub mod castles;
 pub mod heroes;
 pub mod kingdoms;
 pub mod tile;
+pub mod timed_events;
 
+use std::collections::BTreeMap;
 use std::fmt::Display;
 
+use crate::SaveString;
 use crate::model::header::player::PlayerColor;
+use crate::model::world::captured_objects::CapturedObject;
 use crate::model::world::kingdoms::KINGDOM_SLOT_COUNT;
+use crate::model::world::timed_events::TimedEvent;
 
 /// Decoded fheroes2 `World` section.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,6 +29,12 @@ pub struct World {
     pub castles: Vec<castles::Castle>,
     /// Decoded fixed kingdom table.
     pub kingdoms: Vec<kingdoms::Kingdom>,
+    /// Decoded custom rumors table.
+    pub custom_rumors: Vec<SaveString>,
+    /// Decoded timed event list.
+    pub timed_events: Vec<TimedEvent>,
+    /// Decoded captured object map keyed by tile index.
+    pub captured_objects: BTreeMap<i32, CapturedObject>,
 }
 
 impl Default for World {
@@ -34,6 +46,9 @@ impl Default for World {
             heroes: Vec::new(),
             castles: Vec::new(),
             kingdoms: vec![kingdoms::Kingdom::default(); KINGDOM_SLOT_COUNT],
+            custom_rumors: Vec::new(),
+            timed_events: Vec::new(),
+            captured_objects: BTreeMap::new(),
         }
     }
 }
@@ -67,6 +82,13 @@ impl Display for World {
             hireable_heroes,
             jailed_heroes
         )?;
+        writeln!(
+            f,
+            "world extras: {} custom rumors, {} timed events, {} captured objects",
+            self.custom_rumors.len(),
+            self.timed_events.len(),
+            self.captured_objects.len()
+        )?;
 
         let visible_kingdoms: Vec<&kingdoms::Kingdom> = self
             .kingdoms
@@ -82,6 +104,20 @@ impl Display for World {
             writeln!(f, "kingdoms:")?;
             for kingdom in visible_kingdoms {
                 writeln!(f, "  - {kingdom}")?;
+            }
+        }
+
+        if !self.custom_rumors.is_empty() {
+            writeln!(f, "custom_rumors:")?;
+            for rumor in &self.custom_rumors {
+                writeln!(f, "  - {}", brief_save_string(rumor, 96))?;
+            }
+        }
+
+        if !self.timed_events.is_empty() {
+            writeln!(f, "timed_events:")?;
+            for timed_event in &self.timed_events {
+                writeln!(f, "  - {timed_event}")?;
             }
         }
 
@@ -101,6 +137,17 @@ impl Display for World {
 
         Ok(())
     }
+}
+
+fn brief_save_string(value: &SaveString, max_chars: usize) -> String {
+    let single_line = value.to_string_lossy().replace(['\r', '\n'], " ");
+    let total_chars = single_line.chars().count();
+    let mut shortened: String = single_line.chars().take(max_chars).collect();
+    if total_chars > max_chars {
+        shortened.push_str("...");
+    }
+
+    format!("{shortened:?}")
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]

@@ -1,7 +1,10 @@
+use std::collections::BTreeMap;
+
 use super::*;
 use crate::SaveString;
 use crate::internal::writer::Writer;
 use crate::model::header::player::{PlayerColor, PlayerColorsSet, Race};
+use crate::model::world::captured_objects::CapturedObject;
 use crate::model::world::castles::buildings::{CastleBuilding, CastleBuildingSet, CastleDwellings};
 use crate::model::world::castles::{Castle, CastleModeSet, MageGuild};
 use crate::model::world::heroes::army::{Army, MonsterType, Troop};
@@ -17,6 +20,7 @@ use crate::model::world::kingdoms::{
 };
 use crate::model::world::tile::direction::DirectionSet;
 use crate::model::world::tile::{LayerType, ObjectPart, Tile};
+use crate::model::world::timed_events::TimedEvent;
 use crate::model::world::{IndexObject, MapPosition, Point, World};
 
 fn sample_tile() -> Tile {
@@ -73,6 +77,9 @@ fn world_bytes_with_placeholder_heroes(width: i32, height: i32, tiles: &[Tile]) 
     heroes::encode(&mut writer, &[]).unwrap();
     castles::encode(&mut writer, &[]).unwrap();
     kingdoms::encode(&mut writer, &vec![Kingdom::default(); KINGDOM_SLOT_COUNT]).unwrap();
+    writer.write_u32_be(0);
+    writer.write_u32_be(0);
+    writer.write_u32_be(0);
     writer.into_bytes()
 }
 
@@ -93,6 +100,9 @@ fn decode_world_reads_tiles_and_filters_placeholder_heroes() {
     assert!(world.heroes.is_empty());
     assert!(world.castles.is_empty());
     assert_eq!(world.kingdoms, vec![Kingdom::default(); KINGDOM_SLOT_COUNT]);
+    assert!(world.custom_rumors.is_empty());
+    assert!(world.timed_events.is_empty());
+    assert!(world.captured_objects.is_empty());
 }
 
 #[test]
@@ -103,6 +113,32 @@ fn encode_world_round_trips_empty_semantic_world() {
     let decoded = decode(&encoded).unwrap();
 
     assert_eq!(decoded, world);
+}
+
+#[test]
+fn world_display_includes_world_extras() {
+    let mut world = World::default();
+    world.custom_rumors = vec![SaveString::from("Hidden treasure in the marshes")];
+    world.timed_events = vec![sample_timed_event()];
+    world.captured_objects = BTreeMap::from([(
+        4,
+        CapturedObject {
+            object_type: 54,
+            color: PlayerColor::Blue,
+            guardians: Troop {
+                monster: MonsterType::Griffin,
+                count: 27,
+            },
+        },
+    )]);
+
+    let display = world.to_string();
+
+    assert!(display.contains("custom_rumors:"));
+    assert!(display.contains("Hidden treasure in the marshes"));
+    assert!(display.contains("timed_events:"));
+    assert!(display.contains("Weekly Bonus"));
+    assert!(display.contains("1 captured objects"));
 }
 
 #[test]
@@ -117,6 +153,9 @@ fn encode_world_round_trips_semantic_heroes_in_slot_order() {
         heroes: vec![solmyr.clone(), kastore.clone()],
         castles: Vec::new(),
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     let encoded = encode(&world).unwrap();
@@ -141,6 +180,9 @@ fn encode_world_round_trips_semantic_heroes_in_slot_order() {
                 )],
                 &[],
             ),
+            custom_rumors: Vec::new(),
+            timed_events: Vec::new(),
+            captured_objects: BTreeMap::new(),
         }
     );
 }
@@ -156,6 +198,9 @@ fn encode_world_round_trips_semantic_castles() {
         heroes: Vec::new(),
         castles: vec![castle.clone()],
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     let encoded = encode(&world).unwrap();
@@ -181,6 +226,9 @@ fn encode_world_rejects_duplicate_hero_ids() {
         ],
         castles: Vec::new(),
         kingdoms: vec![Kingdom::default(); KINGDOM_SLOT_COUNT],
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     assert_eq!(
@@ -205,6 +253,9 @@ fn encode_world_rejects_kingdom_hero_color_mismatch() {
         heroes: vec![hero],
         castles: Vec::new(),
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     assert_eq!(
@@ -246,6 +297,22 @@ fn encode_world_round_trips_semantic_kingdom_details() {
     kingdoms[0].visited_tents_colors = 1 << 8;
     kingdoms[0].top_castle_in_kingdom_view = 3;
     kingdoms[0].top_hero_in_kingdom_view = 4;
+    let custom_rumors = vec![
+        SaveString::from("A rumor from the tavern"),
+        SaveString::from("A second rumor"),
+    ];
+    let timed_events = vec![sample_timed_event()];
+    let captured_objects = BTreeMap::from([(
+        4,
+        CapturedObject {
+            object_type: 54,
+            color: PlayerColor::Blue,
+            guardians: Troop {
+                monster: MonsterType::Griffin,
+                count: 27,
+            },
+        },
+    )]);
 
     let world = World {
         width: 3,
@@ -254,6 +321,9 @@ fn encode_world_round_trips_semantic_kingdom_details() {
         heroes: vec![hero],
         castles: vec![castle],
         kingdoms,
+        custom_rumors,
+        timed_events,
+        captured_objects,
     };
 
     let encoded = encode(&world).unwrap();
@@ -317,6 +387,9 @@ fn encode_world_rejects_missing_kingdom_hero_membership() {
         heroes: vec![hero],
         castles: Vec::new(),
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     assert_eq!(
@@ -341,6 +414,9 @@ fn encode_world_rejects_kingdom_castle_color_mismatch() {
         heroes: Vec::new(),
         castles: vec![castle],
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     assert_eq!(
@@ -364,6 +440,9 @@ fn encode_world_rejects_unknown_kingdom_castle_ref() {
         heroes: Vec::new(),
         castles: Vec::new(),
         kingdoms,
+        custom_rumors: Vec::new(),
+        timed_events: Vec::new(),
+        captured_objects: BTreeMap::new(),
     };
 
     assert_eq!(
@@ -451,6 +530,26 @@ fn sample_kingdoms(width: i32, height: i32, heroes: &[Hero], castles: &[Castle])
     kingdoms[0].top_castle_in_kingdom_view = 0;
     kingdoms[0].top_hero_in_kingdom_view = 0;
     kingdoms
+}
+
+fn sample_timed_event() -> TimedEvent {
+    TimedEvent {
+        resources: crate::model::world::Funds {
+            wood: 5,
+            mercury: -1,
+            ore: 7,
+            sulfur: 0,
+            crystal: 3,
+            gems: 2,
+            gold: 1_500,
+        },
+        is_applicable_for_ai_players: true,
+        first_occurrence_day: 4,
+        repeat_period_in_days: 7,
+        colors: PlayerColorsSet::from_bits(PlayerColor::Blue.bits() | PlayerColor::Green.bits()),
+        message: SaveString::from("The treasury grows."),
+        title: SaveString::from("Weekly Bonus"),
+    }
 }
 
 fn sample_hero(id: HeroID, name: &str, color: PlayerColor, race: Race) -> Hero {

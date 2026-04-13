@@ -88,6 +88,32 @@ fn save_persists_world_castle_edits_into_reloaded_save() {
 }
 
 #[test]
+fn save_persists_world_captured_object_edits_into_reloaded_save() {
+    let bytes = fs::read("tests/saves/10032/Guardian_War_0009.sav").unwrap();
+
+    let mut save_game = load(&bytes).unwrap();
+    let (tile_index, captured_object) = save_game
+        .world
+        .captured_objects
+        .iter_mut()
+        .next()
+        .expect("fixture should contain at least one captured object");
+    captured_object.guardians.count = captured_object.guardians.count.saturating_add(9);
+
+    let edited_tile_index = *tile_index;
+    let edited_captured_object = captured_object.clone();
+    let encoded = save(&save_game).unwrap();
+    let reloaded = load(&encoded).unwrap();
+    let reloaded_captured_object = reloaded
+        .world
+        .captured_objects
+        .get(&edited_tile_index)
+        .expect("edited captured object should still exist after reload");
+
+    assert_eq!(reloaded_captured_object, &edited_captured_object);
+}
+
+#[test]
 fn save_display_includes_decoded_castles() {
     let bytes = fs::read("tests/saves/10032/Guardian_War_0009.sav").unwrap();
 
