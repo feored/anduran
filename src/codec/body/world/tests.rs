@@ -12,6 +12,9 @@ use crate::model::world::heroes::path::{Direction, Path, RouteStep};
 use crate::model::world::heroes::skills::{SecondarySkill, Skill, SkillLevel};
 use crate::model::world::heroes::spells::Spell;
 use crate::model::world::heroes::{Hero, HeroBase, PrimarySkills};
+use crate::model::world::kingdoms::{
+    KINGDOM_SLOT_COUNT, Kingdom, KingdomModeSet, PUZZLE_REVEALED_TILES_COUNT,
+};
 use crate::model::world::tile::direction::DirectionSet;
 use crate::model::world::tile::{LayerType, ObjectPart, Tile};
 use crate::model::world::{IndexObject, MapPosition, Point, World};
@@ -69,7 +72,12 @@ fn world_bytes_with_placeholder_heroes(width: i32, height: i32, tiles: &[Tile]) 
     }
     heroes::encode(&mut writer, &[]).unwrap();
     castles::encode(&mut writer, &[]).unwrap();
+    kingdoms::encode(&mut writer, &vec![Kingdom::default(); KINGDOM_SLOT_COUNT]).unwrap();
     writer.into_bytes()
+}
+
+fn castle_index(width: i32, height: i32, castle: &Castle) -> i32 {
+    super::validation::castle_index_from_map_position(width, height, castle).unwrap()
 }
 
 #[test]
@@ -84,17 +92,12 @@ fn decode_world_reads_tiles_and_filters_placeholder_heroes() {
     assert_eq!(world.tiles, vec![tile]);
     assert!(world.heroes.is_empty());
     assert!(world.castles.is_empty());
+    assert_eq!(world.kingdoms, vec![Kingdom::default(); KINGDOM_SLOT_COUNT]);
 }
 
 #[test]
 fn encode_world_round_trips_empty_semantic_world() {
-    let world = World {
-        width: 0,
-        height: 0,
-        tiles: Vec::new(),
-        heroes: Vec::new(),
-        castles: Vec::new(),
-    };
+    let world = World::default();
 
     let encoded = encode(&world).unwrap();
     let decoded = decode(&encoded).unwrap();
@@ -106,12 +109,14 @@ fn encode_world_round_trips_empty_semantic_world() {
 fn encode_world_round_trips_semantic_heroes_in_slot_order() {
     let kastore = sample_hero(HeroID::Kastore, "Kastore", PlayerColor::Blue, Race::Warlock);
     let solmyr = sample_hero(HeroID::Solmyr, "Solmyr", PlayerColor::None, Race::Wizard);
+    let kingdoms = sample_kingdoms(3, 2, std::slice::from_ref(&kastore), &[]);
     let world = World {
         width: 3,
         height: 2,
         tiles: vec![sample_tile()],
         heroes: vec![solmyr.clone(), kastore.clone()],
         castles: Vec::new(),
+        kingdoms,
     };
 
     let encoded = encode(&world).unwrap();
@@ -125,6 +130,17 @@ fn encode_world_round_trips_semantic_heroes_in_slot_order() {
             tiles: vec![sample_tile()],
             heroes: vec![kastore, solmyr],
             castles: Vec::new(),
+            kingdoms: sample_kingdoms(
+                3,
+                2,
+                &[sample_hero(
+                    HeroID::Kastore,
+                    "Kastore",
+                    PlayerColor::Blue,
+                    Race::Warlock,
+                )],
+                &[],
+            ),
         }
     );
 }
@@ -132,12 +148,14 @@ fn encode_world_round_trips_semantic_heroes_in_slot_order() {
 #[test]
 fn encode_world_round_trips_semantic_castles() {
     let castle = sample_castle();
+    let kingdoms = sample_kingdoms(3, 2, &[], std::slice::from_ref(&castle));
     let world = World {
         width: 3,
         height: 2,
         tiles: vec![sample_tile()],
         heroes: Vec::new(),
         castles: vec![castle.clone()],
+        kingdoms,
     };
 
     let encoded = encode(&world).unwrap();
@@ -162,6 +180,7 @@ fn encode_world_rejects_duplicate_hero_ids() {
             ),
         ],
         castles: Vec::new(),
+        kingdoms: vec![Kingdom::default(); KINGDOM_SLOT_COUNT],
     };
 
     assert_eq!(
@@ -169,6 +188,189 @@ fn encode_world_rejects_duplicate_hero_ids() {
         Err(Error::InvalidModel {
             field: "world heroes",
             message: "hero ids must be unique",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_kingdom_hero_color_mismatch() {
+    let hero = sample_hero(HeroID::Kastore, "Kastore", PlayerColor::Blue, Race::Warlock);
+    let mut kingdoms = vec![Kingdom::default(); KINGDOM_SLOT_COUNT];
+    kingdoms[2].color = PlayerColor::Red;
+    kingdoms[2].hero_ids.push(hero.id);
+    let world = World {
+        width: 3,
+        height: 2,
+        tiles: vec![sample_tile()],
+        heroes: vec![hero],
+        castles: Vec::new(),
+        kingdoms,
+    };
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom heroes",
+            message: "kingdom hero references must match the referenced hero color",
+        })
+    );
+}
+
+#[test]
+fn encode_world_round_trips_semantic_kingdom_details() {
+    let hero = sample_hero(HeroID::Kastore, "Kastore", PlayerColor::Blue, Race::Warlock);
+    let castle = sample_castle();
+    let mut kingdoms = sample_kingdoms(
+        3,
+        2,
+        std::slice::from_ref(&hero),
+        std::slice::from_ref(&castle),
+    );
+    kingdoms[0].mode = KingdomModeSet::from_bits(KingdomModeSet::IDENTIFYHERO.bits());
+    kingdoms[0].recruits.first.hero_id = hero.id;
+    kingdoms[0].recruits.first.surrender_day = 7;
+    kingdoms[0].visited_objects = vec![
+        IndexObject {
+            tile_index: 5,
+            object_type: 77,
+        },
+        IndexObject {
+            tile_index: 6,
+            object_type: 88,
+        },
+    ];
+    kingdoms[0].puzzle.revealed_tiles =
+        SaveString::from("01".repeat(PUZZLE_REVEALED_TILES_COUNT / 2));
+    kingdoms[0].puzzle.zone1_order.reverse();
+    kingdoms[0].puzzle.zone2_order.reverse();
+    kingdoms[0].visited_tents_colors = 1 << 8;
+    kingdoms[0].top_castle_in_kingdom_view = 3;
+    kingdoms[0].top_hero_in_kingdom_view = 4;
+
+    let world = World {
+        width: 3,
+        height: 2,
+        tiles: vec![sample_tile()],
+        heroes: vec![hero],
+        castles: vec![castle],
+        kingdoms,
+    };
+
+    let encoded = encode(&world).unwrap();
+    let decoded = decode(&encoded).unwrap();
+
+    assert_eq!(decoded, world);
+}
+
+#[test]
+fn encode_world_rejects_invalid_kingdom_puzzle_revealed_tiles() {
+    let mut world = World::default();
+    world.kingdoms[0].puzzle.revealed_tiles =
+        SaveString::from("0".repeat(PUZZLE_REVEALED_TILES_COUNT - 1));
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom puzzle revealed tiles",
+            message: "revealed tiles must be 48 ASCII '0'/'1' bytes",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_invalid_kingdom_puzzle_zone_size() {
+    let mut world = World::default();
+    world.kingdoms[0].puzzle.zone1_order.pop();
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom puzzle zone1",
+            message: "zone must contain exactly 24 tiles",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_kingdom_slot_color_mismatch() {
+    let mut world = World::default();
+    world.kingdoms[1].color = PlayerColor::Blue;
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom colors",
+            message: "kingdom slot colors must match fheroes2 slot order or be None for inactive slots",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_missing_kingdom_hero_membership() {
+    let hero = sample_hero(HeroID::Kastore, "Kastore", PlayerColor::Blue, Race::Warlock);
+    let mut kingdoms = vec![Kingdom::default(); KINGDOM_SLOT_COUNT];
+    kingdoms[0].color = PlayerColor::Blue;
+    let world = World {
+        width: 0,
+        height: 0,
+        tiles: Vec::new(),
+        heroes: vec![hero],
+        castles: Vec::new(),
+        kingdoms,
+    };
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom heroes",
+            message: "every non-neutral hero must appear in exactly one kingdom hero list",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_kingdom_castle_color_mismatch() {
+    let castle = sample_castle();
+    let mut kingdoms = vec![Kingdom::default(); KINGDOM_SLOT_COUNT];
+    kingdoms[1].color = PlayerColor::Green;
+    kingdoms[1].castle_indexes.push(castle_index(3, 2, &castle));
+    let world = World {
+        width: 3,
+        height: 2,
+        tiles: vec![sample_tile()],
+        heroes: Vec::new(),
+        castles: vec![castle],
+        kingdoms,
+    };
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom castles",
+            message: "kingdom castle references must match the referenced castle color",
+        })
+    );
+}
+
+#[test]
+fn encode_world_rejects_unknown_kingdom_castle_ref() {
+    let mut kingdoms = vec![Kingdom::default(); KINGDOM_SLOT_COUNT];
+    kingdoms[0].color = PlayerColor::Blue;
+    kingdoms[0].castle_indexes.push(1234);
+    let world = World {
+        width: 3,
+        height: 2,
+        tiles: vec![sample_tile()],
+        heroes: Vec::new(),
+        castles: Vec::new(),
+        kingdoms,
+    };
+
+    assert_eq!(
+        encode(&world),
+        Err(Error::InvalidModel {
+            field: "kingdom castles",
+            message: "kingdom castle references must point to decoded castles",
         })
     );
 }
@@ -190,7 +392,7 @@ fn sample_castle() -> Castle {
     );
 
     Castle {
-        map_position: MapPosition { x: 44, y: 55 },
+        map_position: MapPosition { x: 1, y: 1 },
         mode,
         race: Race::Warlock,
         constructed_buildings,
@@ -230,6 +432,25 @@ fn sample_castle() -> Castle {
             player_color: PlayerColor::Blue,
         },
     }
+}
+
+fn sample_kingdoms(width: i32, height: i32, heroes: &[Hero], castles: &[Castle]) -> Vec<Kingdom> {
+    let mut kingdoms = vec![Kingdom::default(); KINGDOM_SLOT_COUNT];
+    kingdoms[0].color = PlayerColor::Blue;
+    kingdoms[0].hero_ids = heroes
+        .iter()
+        .filter(|hero| hero.color_base == PlayerColor::Blue)
+        .map(|hero| hero.id)
+        .collect();
+    kingdoms[0].castle_indexes = castles
+        .iter()
+        .filter(|castle| castle.color_base == PlayerColor::Blue)
+        .map(|castle| castle_index(width, height, castle))
+        .collect();
+    kingdoms[0].funds.gold = 12_345;
+    kingdoms[0].top_castle_in_kingdom_view = 0;
+    kingdoms[0].top_hero_in_kingdom_view = 0;
+    kingdoms
 }
 
 fn sample_hero(id: HeroID, name: &str, color: PlayerColor, race: Race) -> Hero {

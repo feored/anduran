@@ -5,8 +5,11 @@ pub mod tile;
 
 use std::fmt::Display;
 
+use crate::model::header::player::PlayerColor;
+use crate::model::world::kingdoms::KINGDOM_SLOT_COUNT;
+
 /// Decoded fheroes2 `World` section.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct World {
     /// World width in tiles.
     pub width: i32,
@@ -18,6 +21,21 @@ pub struct World {
     pub heroes: Vec<heroes::Hero>,
     /// Decoded castle table.
     pub castles: Vec<castles::Castle>,
+    /// Decoded fixed kingdom table.
+    pub kingdoms: Vec<kingdoms::Kingdom>,
+}
+
+impl Default for World {
+    fn default() -> Self {
+        Self {
+            width: 0,
+            height: 0,
+            tiles: Vec::new(),
+            heroes: Vec::new(),
+            castles: Vec::new(),
+            kingdoms: vec![kingdoms::Kingdom::default(); KINGDOM_SLOT_COUNT],
+        }
+    }
 }
 
 impl Display for World {
@@ -37,10 +55,11 @@ impl Display for World {
 
         writeln!(
             f,
-            "world: {}x{}, {} tiles, {} castles, {} heroes ({} active, {} in play, {} for hire, {} jailed)",
+            "world: {}x{}, {} tiles, {} kingdoms, {} castles, {} heroes ({} active, {} in play, {} for hire, {} jailed)",
             self.width,
             self.height,
             self.tiles.len(),
+            self.kingdoms.len(),
             self.castles.len(),
             self.heroes.len(),
             active_heroes,
@@ -48,6 +67,23 @@ impl Display for World {
             hireable_heroes,
             jailed_heroes
         )?;
+
+        let visible_kingdoms: Vec<&kingdoms::Kingdom> = self
+            .kingdoms
+            .iter()
+            .filter(|kingdom| {
+                kingdom.color != PlayerColor::None
+                    || !kingdom.hero_ids.is_empty()
+                    || !kingdom.castle_indexes.is_empty()
+            })
+            .collect();
+
+        if !visible_kingdoms.is_empty() {
+            writeln!(f, "kingdoms:")?;
+            for kingdom in visible_kingdoms {
+                writeln!(f, "  - {kingdom}")?;
+            }
+        }
 
         if !self.castles.is_empty() {
             writeln!(f, "castles:")?;

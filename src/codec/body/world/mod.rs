@@ -1,6 +1,8 @@
 mod castles;
 mod heroes;
+mod kingdoms;
 mod tile;
+mod validation;
 
 use crate::Error;
 use crate::internal::error::ParseSection;
@@ -8,6 +10,7 @@ use crate::internal::reader::Reader;
 use crate::internal::writer::Writer;
 use crate::model::world::World;
 use crate::model::world::tile::Tile;
+use validation::validate_kingdoms;
 
 pub(crate) fn decode(bytes: &[u8]) -> std::result::Result<World, Error> {
     Ok(decode_with_remaining_offset(bytes)?.0)
@@ -26,16 +29,20 @@ pub(crate) fn decode_with_remaining_offset(
     }
     let heroes = heroes::decode(&mut reader)?;
     let castles = castles::decode(&mut reader)?;
-    Ok((
-        World {
-            width,
-            height,
-            tiles,
-            heroes,
-            castles,
-        },
-        reader.position(),
-    ))
+    let kingdoms_offset = reader.position();
+    let kingdoms = kingdoms::decode(&mut reader)?;
+    let world = World {
+        width,
+        height,
+        tiles,
+        heroes,
+        castles,
+        kingdoms,
+    };
+    validate_kingdoms(&world)
+        .map_err(|issue| reader.invalid_value(issue.field, kingdoms_offset, issue.message))?;
+
+    Ok((world, reader.position()))
 }
 
 pub(crate) fn encode(world: &World) -> std::result::Result<Vec<u8>, Error> {
@@ -55,6 +62,11 @@ pub(crate) fn encode(world: &World) -> std::result::Result<Vec<u8>, Error> {
 
     heroes::encode(&mut writer, &world.heroes)?;
     castles::encode(&mut writer, &world.castles)?;
+    validate_kingdoms(world).map_err(|issue| Error::InvalidModel {
+        field: issue.field,
+        message: issue.message,
+    })?;
+    kingdoms::encode(&mut writer, &world.kingdoms)?;
 
     Ok(writer.into_bytes())
 }

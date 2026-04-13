@@ -94,6 +94,15 @@ fn save_display_includes_decoded_castles() {
     let save_game = load(&bytes).unwrap();
     let display = save_game.to_string();
 
+    assert!(display.contains("kingdoms:"));
+    if let Some(first_kingdom) = save_game.world.kingdoms.iter().find(|kingdom| {
+        kingdom.color != PlayerColor::None
+            || !kingdom.hero_ids.is_empty()
+            || !kingdom.castle_indexes.is_empty()
+    }) {
+        assert!(display.contains(&first_kingdom.to_string()));
+    }
+
     assert!(display.contains("castles:"));
     if let Some(first_castle) = save_game.world.castles.first() {
         assert!(display.contains(&first_castle.to_string()));
