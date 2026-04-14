@@ -25,7 +25,7 @@ pub(super) fn decode(reader: &mut Reader<'_>) -> std::result::Result<Vec<Hero>, 
             "unexpected heroes table size, expected 73",
         ));
     }
-    let mut heroes = Vec::with_capacity(usize::try_from(count).unwrap_or(0));
+    let mut heroes = Vec::with_capacity(EXPECTED_HEROES_COUNT as usize);
     for _ in 0..count {
         let hero = decode_hero(reader)?;
         if hero.is_meaningful() {
@@ -130,14 +130,14 @@ pub(crate) fn decode_hero_base(reader: &mut Reader<'_>) -> std::result::Result<H
     let spell_points = reader.read_u32_be("hero spell points")?;
     let move_points = reader.read_u32_be("hero move points")?;
     let spells_count = reader.read_u32_be("hero spell book count")?;
-    let mut spell_book = Vec::with_capacity(usize::try_from(spells_count).unwrap_or(0));
+    let mut spell_book = Vec::with_capacity(spells_count as usize);
     for _ in 0..spells_count {
         spell_book.push(Spell::from_i32(
             reader.read_i32_be("hero spell book spell")?,
         ));
     }
     let artifacts_count = reader.read_u32_be("hero bag artifacts count")?;
-    let mut bag_artifacts = Vec::with_capacity(usize::try_from(artifacts_count).unwrap_or(0));
+    let mut bag_artifacts = Vec::with_capacity(artifacts_count as usize);
     for _ in 0..artifacts_count {
         let artifact: Artifact = Artifact {
             id: ArtifactID::from_i32(reader.read_i32_be("hero bag artifact")?),
@@ -204,8 +204,7 @@ fn decode_secondary_skills(
             "too many hero secondary skills",
         ));
     }
-    let mut secondary_skills =
-        Vec::with_capacity(usize::try_from(secondary_skills_count).unwrap_or(0));
+    let mut secondary_skills = Vec::with_capacity(secondary_skills_count as usize);
     for _ in 0..secondary_skills_count {
         secondary_skills.push(SecondarySkill {
             id: Skill::from_i32(reader.read_i32_be("hero secondary skill")?),
@@ -250,7 +249,7 @@ pub(crate) fn decode_army(reader: &mut Reader<'_>) -> std::result::Result<Army, 
             "unexpected hero army troops count, expected 5",
         ));
     }
-    let mut troops = Vec::with_capacity(usize::try_from(troops_count).unwrap_or(0));
+    let mut troops = Vec::with_capacity(5);
     for _ in 0..troops_count {
         troops.push(Troop {
             monster: MonsterType::from_i32(reader.read_i32_be("hero army troop monster type")?),
@@ -290,7 +289,7 @@ pub(crate) fn encode_troop(writer: &mut Writer, troop: &Troop) {
 fn decode_path(reader: &mut Reader<'_>) -> std::result::Result<Path, Error> {
     let hidden = reader.read_byte_as_bool("hero path hidden")?;
     let steps_count = reader.read_u32_be("hero path steps count")?;
-    let mut steps = Vec::with_capacity(usize::try_from(steps_count).unwrap_or(0));
+    let mut steps = Vec::with_capacity(steps_count as usize);
     for _ in 0..steps_count {
         steps.push(RouteStep {
             from_index: reader.read_i32_be("hero path step from index")?,
@@ -320,7 +319,7 @@ fn encode_path(writer: &mut Writer, path: &Path) -> std::result::Result<(), Erro
 
 fn decode_visited_objects(reader: &mut Reader<'_>) -> std::result::Result<Vec<IndexObject>, Error> {
     let visited_count = reader.read_u32_be("hero visited objects count")?;
-    let mut visited_objects = Vec::with_capacity(usize::try_from(visited_count).unwrap_or(0));
+    let mut visited_objects = Vec::with_capacity(visited_count as usize);
     for _ in 0..visited_count {
         visited_objects.push(IndexObject {
             tile_index: reader.read_i32_be("hero visited object tile index")?,
@@ -385,7 +384,7 @@ fn encode_placeholder_hero(writer: &mut Writer) -> std::result::Result<(), Error
 }
 
 fn hero_slots(heroes: &[Hero]) -> std::result::Result<Vec<Option<&Hero>>, Error> {
-    let mut slots = vec![None; usize::try_from(EXPECTED_HEROES_COUNT).unwrap()];
+    let mut slots = vec![None; EXPECTED_HEROES_COUNT as usize];
 
     for hero in heroes {
         let slot_index = semantic_slot_index(hero)?;
@@ -415,7 +414,7 @@ fn semantic_slot_index(hero: &Hero) -> std::result::Result<usize, Error> {
         message: "hero id must fit in serialized hero table",
     })?;
 
-    if slot_index >= usize::try_from(EXPECTED_HEROES_COUNT).unwrap() {
+    if slot_index >= EXPECTED_HEROES_COUNT as usize {
         return Err(Error::InvalidModel {
             field: "world heroes",
             message: "hero id must fit in serialized hero table",

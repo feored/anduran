@@ -27,7 +27,7 @@ pub(crate) fn decode(
     let colors = PlayerColorsSet::from_bits(reader.read_u8("settings players colors")?);
     let current_player_color =
         PlayerColor::from_bits(reader.read_u8("settings players current player color")?);
-    let expected_players_count = usize::try_from(colors.bits().count_ones()).unwrap_or(0);
+    let expected_players_count = colors.bits().count_ones() as usize;
 
     let mut entries = Vec::with_capacity(expected_players_count);
     for _ in 0..expected_players_count {
@@ -78,8 +78,7 @@ pub(crate) fn encode(
     writer.write_i32_be(settings.game_difficulty.to_i32());
     writer.write_i32_be(settings.game_type.to_i32());
 
-    let expected_players_count =
-        usize::try_from(settings.players.colors.bits().count_ones()).unwrap_or(0);
+    let expected_players_count = settings.players.colors.bits().count_ones() as usize;
     if settings.players.entries.len() != expected_players_count {
         return Err(Error::InvalidModel {
             field: "settings players",

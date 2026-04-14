@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
-/// fheroes2 save format version.
+/// fheroes2 save format version. This list includes
+/// many versions that are not currently supported by profile_for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct SaveVersion(u16);
 
