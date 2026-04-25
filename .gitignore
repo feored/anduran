@@ -1,6 +1,27 @@
-/target
-/src/bin/test.rs
-/docs/architecture-notes.md
-/docs/fheroes2-save-format.md
-/docs/TODO.md
-/docs/notes.md
+.DS_Store
+
+# Rust
+/target/
+**/target/
+
+# JavaScript / SvelteKit
+**/node_modules/
+**/build/
+**/.svelte-kit/
+**/package/
+**/vite.config.js.timestamp-*
+**/vite.config.ts.timestamp-*
+
+# Tauri generated files
+**/src-tauri/gen/schemas/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local scratch files
+/kastore/dev/
