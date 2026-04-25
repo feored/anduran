@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "anduran/src-tauri",
+    "app/src-tauri",
     "kastore",
 ]
 resolver = "3"

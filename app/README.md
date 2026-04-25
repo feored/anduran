@@ -1,7 +1,11 @@
-# Tauri + SvelteKit + TypeScript
+# Anduran App
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+This directory contains the Tauri + SvelteKit desktop app.
 
-## Recommended IDE Setup
+Run it from this directory:
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+```sh
+pnpm tauri dev
+```
+
+For the full workspace layout and setup notes, see the root `README.md`.
