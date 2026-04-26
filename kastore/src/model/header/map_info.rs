@@ -112,6 +112,19 @@ impl Difficulty {
     }
 }
 
+impl Display for Difficulty {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Difficulty::Easy => f.write_str("Easy"),
+            Difficulty::Normal => f.write_str("Normal"),
+            Difficulty::Hard => f.write_str("Hard"),
+            Difficulty::Expert => f.write_str("Expert"),
+            Difficulty::Impossible => f.write_str("Impossible"),
+            Difficulty::Unknown(value) => write!(f, "Unknown difficulty {value}"),
+        }
+    }
+}
+
 /// Victory condition kind stored in `Maps::FileInfo`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum VictoryConditionKind {

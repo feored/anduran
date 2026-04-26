@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 use crate::internal::error::{Error, ParseSection};
 
 /// Parse policy used by `load_with_options`.
@@ -17,12 +19,31 @@ pub enum Severity {
     Error,
 }
 
+impl Display for Severity {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Severity::Warning => f.write_str("warning"),
+            Severity::Error => f.write_str("error"),
+        }
+    }
+}
+
 /// Coarse category for parse diagnostics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiagnosticKind {
     UnknownBitFlags,
     UnexpectedReservedValue,
     TrailingBytes,
+}
+
+impl Display for DiagnosticKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DiagnosticKind::UnknownBitFlags => f.write_str("unknown_bit_flags"),
+            DiagnosticKind::UnexpectedReservedValue => f.write_str("unexpected_reserved_value"),
+            DiagnosticKind::TrailingBytes => f.write_str("trailing_bytes"),
+        }
+    }
 }
 
 /// A non-fatal parse issue observed while decoding.
