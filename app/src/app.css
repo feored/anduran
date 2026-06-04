@@ -4,22 +4,22 @@
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
-  --color-background: #101113;
-  --color-foreground: #e6dfd2;
-  --color-panel: #17191c;
-  --color-panel-muted: #131518;
-  --color-panel-elevated: #1d2024;
-  --color-border: #33363b;
-  --color-border-strong: #55504a;
-  --color-muted: #88837a;
-  --color-muted-foreground: #b2aaa0;
-  --color-accent: #b98b45;
-  --color-accent-foreground: #15100a;
-  --color-danger: #c96358;
-  --color-warning: #c99a4a;
-  --color-success: #7f9f6f;
-  --color-readonly: #74706a;
-  --color-advanced: #7d8fae;
+  --color-background: #0b0d10;
+  --color-foreground: #f2f4f8;
+  --color-panel: #151922;
+  --color-panel-muted: #10141b;
+  --color-panel-elevated: #202633;
+  --color-border: #445064;
+  --color-border-strong: #728096;
+  --color-muted: #a5afbf;
+  --color-muted-foreground: #d2d8e2;
+  --color-accent: #6ea8ff;
+  --color-accent-foreground: #07111f;
+  --color-danger: #ff7a7a;
+  --color-warning: #ffd166;
+  --color-success: #8ee59d;
+  --color-readonly: #a5afbf;
+  --color-advanced: #a9c4ff;
 }
 
 @layer base {
@@ -31,12 +31,7 @@
   }
 
   body {
-    @apply m-0 min-h-screen bg-background text-foreground antialiased;
-    background-image: linear-gradient(180deg, rgb(185 139 69 / 0.05), transparent 16rem);
-  }
-
-  ::selection {
-    background: rgb(197 138 43 / 0.35);
+    @apply m-0 min-h-screen bg-background text-foreground;
   }
 
   button,
@@ -44,5 +39,13 @@
   textarea,
   select {
     font: inherit;
+  }
+
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
   }
 }

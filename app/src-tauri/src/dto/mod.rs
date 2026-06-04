@@ -17,6 +17,7 @@ pub struct ScenarioMutationResultDto {
     pub scenario: ScenarioDto,
     pub dirty: bool,
     pub revision: u64,
+    pub validation: ValidationResultDto,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
@@ -69,7 +70,6 @@ pub struct SaveStringDto {
     pub text: String,
     pub raw_bytes: Vec<u8>,
     pub valid_utf8: bool,
-    pub modified: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]

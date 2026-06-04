@@ -4,11 +4,11 @@
   type BadgeTone = 'default' | 'success' | 'warning' | 'danger' | 'muted';
 
   const toneClasses: Record<BadgeTone, string> = {
-    default: 'border-accent/45 bg-accent/10 text-accent',
-    success: 'border-success/45 bg-success/10 text-success',
-    warning: 'border-warning/45 bg-warning/10 text-warning',
-    danger: 'border-danger/45 bg-danger/10 text-danger',
-    muted: 'border-border bg-panel-muted text-muted-foreground',
+    default: 'border-accent bg-panel-elevated text-accent',
+    success: 'border-success bg-panel-elevated text-success',
+    warning: 'border-warning bg-panel-elevated text-warning',
+    danger: 'border-danger bg-panel-elevated text-danger',
+    muted: 'border-border bg-panel-elevated text-muted-foreground',
   };
 
   let {

@@ -1,6 +1,7 @@
-use anduran_lib::dto::{
-    OpenedSaveDto, ScenarioMutationDto, ScenarioMutationResultDto, ValidationResultDto,
-};
+#[path = "../dto/mod.rs"]
+mod dto;
+
+use dto::{OpenedSaveDto, ScenarioMutationDto, ScenarioMutationResultDto, ValidationResultDto};
 use ts_rs::{Config, TS};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

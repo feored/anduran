@@ -1,12 +1,16 @@
 <script lang="ts">
 	import { editorSections, type EditorSectionId } from "$lib/editor/sections";
 
+	type AppSectionId = "library" | EditorSectionId;
+
 	let {
 		activeSection,
+		hasOpenSave,
 		onSelect,
 	}: {
-		activeSection: EditorSectionId;
-		onSelect: (section: EditorSectionId) => void;
+		activeSection: AppSectionId;
+		hasOpenSave: boolean;
+		onSelect: (section: AppSectionId) => void | Promise<void>;
 	} = $props();
 </script>
 
@@ -15,21 +19,37 @@
 		<strong class="block text-sm font-semibold">Anduran</strong>
 	</div>
 
-	<nav class="grid gap-1 p-2" aria-label="Editor sections">
-		{#each editorSections as section}
-			<button
-				type="button"
-				aria-current={section.id === activeSection ? "page" : undefined}
-				class={[
-					"rounded border px-3 py-2 text-left text-sm transition-colors",
-					section.id === activeSection
-						? "border-accent/50 bg-accent/10 text-accent"
-						: "border-transparent text-muted-foreground hover:bg-panel-elevated hover:text-foreground",
-				]}
-				onclick={() => onSelect(section.id)}
-			>
-				{section.label}
-			</button>
-		{/each}
+	<nav class="grid gap-1 p-2" aria-label="Sections">
+		<button
+			type="button"
+			aria-current={activeSection === "library" ? "page" : undefined}
+			class={[
+				"rounded border px-3 py-2 text-left text-sm",
+				activeSection === "library"
+					? "border-accent bg-panel-elevated text-foreground"
+					: "border-transparent text-muted-foreground hover:bg-panel-elevated hover:text-foreground",
+			]}
+			onclick={() => onSelect("library")}
+		>
+			{hasOpenSave ? "<- Library" : "Library"}
+		</button>
+
+		{#if hasOpenSave}
+			{#each editorSections as section}
+				<button
+					type="button"
+					aria-current={section.id === activeSection ? "page" : undefined}
+					class={[
+						"rounded border px-3 py-2 text-left text-sm",
+						section.id === activeSection
+							? "border-accent bg-panel-elevated text-foreground"
+							: "border-transparent text-muted-foreground hover:bg-panel-elevated hover:text-foreground",
+					]}
+					onclick={() => onSelect(section.id)}
+				>
+					{section.label}
+				</button>
+			{/each}
+		{/if}
 	</nav>
 </aside>

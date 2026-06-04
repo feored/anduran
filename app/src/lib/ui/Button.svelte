@@ -19,7 +19,7 @@
 
   const variantClass = $derived(
     variant === 'primary'
-      ? 'border-accent bg-accent text-accent-foreground hover:bg-accent/90'
+      ? 'border-foreground bg-foreground text-background hover:border-muted hover:bg-muted'
       : variant === 'ghost'
         ? 'border-transparent bg-transparent text-muted-foreground hover:bg-panel-elevated hover:text-foreground'
         : 'border-border bg-panel-elevated text-foreground hover:border-border-strong hover:bg-panel'
@@ -30,8 +30,8 @@
 
 <button
   class={[
-    'inline-flex items-center justify-center rounded border font-medium transition-colors',
-    'disabled:cursor-not-allowed disabled:opacity-55',
+    'inline-flex items-center justify-center rounded border font-medium',
+    'disabled:cursor-not-allowed disabled:border-border disabled:bg-panel disabled:text-muted',
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
     variantClass,
     sizeClass,

@@ -66,7 +66,6 @@ fn save_string_dto(value: &SaveString) -> SaveStringDto {
         text: value.to_string_lossy(),
         raw_bytes: value.as_bytes().to_vec(),
         valid_utf8: value.as_utf8().is_ok(),
-        modified: false,
     }
 }
 
