@@ -1,10 +1,10 @@
 use std::path::Path;
 
-use kastore::{Diagnostic, SaveGame, SaveString, ValidationIssue};
+use kastore::{Diagnostic, SaveGame, SaveString, SaveSummary, ValidationIssue};
 
 use crate::dto::{
-    DiagnosticDto, OpenedSaveDto, SaveStringDto, ScenarioDto, SourceDto, ValidationIssueDto,
-    ValidationResultDto,
+    DiagnosticDto, OpenedSaveDto, SaveStringDto, SaveSummaryDto, ScenarioDto, SourceDto,
+    ValidationIssueDto, ValidationResultDto,
 };
 
 pub fn opened_save_dto(
@@ -20,6 +20,21 @@ pub fn opened_save_dto(
         diagnostics,
         dirty,
         revision,
+    }
+}
+
+pub fn save_summary_dto(summary: &SaveSummary) -> SaveSummaryDto {
+    let file_info = &summary.header.file_info;
+
+    SaveSummaryDto {
+        save_version: summary.source_version.as_u16(),
+        map_name: save_string_dto(&file_info.name),
+        map_file_name: save_string_dto(&file_info.filename),
+        width: file_info.width,
+        height: file_info.height,
+        difficulty: file_info.difficulty.to_string(),
+        game_mode: summary.header.game_type.primary_game_mode().to_string(),
+        requires_pol: summary.header.requires_pol,
     }
 }
 

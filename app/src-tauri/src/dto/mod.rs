@@ -36,6 +36,37 @@ pub struct ValidationIssueDto {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "camelCase")]
+pub struct LibraryDto {
+    pub entries: Vec<LibrarySaveEntryDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct LibrarySaveEntryDto {
+    pub path: String,
+    pub file_name: String,
+    pub size_bytes: u64,
+    pub modified_timestamp: Option<u64>,
+    pub status: String,
+    pub summary: Option<SaveSummaryDto>,
+    pub diagnostics: Vec<DiagnosticDto>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
+pub struct SaveSummaryDto {
+    pub save_version: u16,
+    pub map_name: SaveStringDto,
+    pub map_file_name: SaveStringDto,
+    pub width: u16,
+    pub height: u16,
+    pub difficulty: String,
+    pub game_mode: String,
+    pub requires_pol: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[serde(rename_all = "camelCase")]
 pub struct SourceDto {
     pub path: String,
     pub file_name: String,

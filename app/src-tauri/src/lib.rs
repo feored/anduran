@@ -11,6 +11,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             commands::close_open_save::close_open_save,
+            commands::list_library_saves::list_library_saves,
             commands::mutate_scenario::mutate_scenario,
             commands::open_save::open_save,
             commands::save_open_save::save_open_save,

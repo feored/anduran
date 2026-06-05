@@ -28,8 +28,10 @@
     }
   }
 
-  async function openFromLibrary() {
-    const opened = await openedSaveSession.pickAndOpen();
+  async function openFromLibrary(path?: string) {
+    const opened = path
+      ? await openedSaveSession.open(path)
+      : await openedSaveSession.pickAndOpen();
 
     if (opened) {
       activeSection = 'scenario';

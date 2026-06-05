@@ -1,10 +1,15 @@
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 
+import type { LibraryDto } from './bindings/LibraryDto';
 import type { OpenedSaveDto } from './bindings/OpenedSaveDto';
 import type { ScenarioMutationDto } from './bindings/ScenarioMutationDto';
 import type { ScenarioMutationResultDto } from './bindings/ScenarioMutationResultDto';
 import type { ValidationResultDto } from './bindings/ValidationResultDto';
+
+export async function listLibrarySaves(path?: string): Promise<LibraryDto> {
+  return invoke<LibraryDto>('list_library_saves', { path: path ?? null });
+}
 
 export async function openSave(path: string): Promise<OpenedSaveDto> {
   return invoke<OpenedSaveDto>('open_save', { path });
